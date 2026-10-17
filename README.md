@@ -54,4 +54,4 @@ uv run apns
 uv run
 ```
 
-
+Use `uv format` e instale a extensão 'Ruff', para manter o codigo padronizado.
