@@ -63,3 +63,5 @@ ENV/
 
 # OS X
 .DS_Store   
+
+uv.lock
