@@ -35,37 +35,23 @@ Serão apresentadas visualizações bidimensionais e comentários sobre os resul
 aprendizado-nao-supervisionado/
 ├── data/           # Dados locais ou instruções para obtê-los
 ├── notebooks/      # Exploração e experimentos em Jupyter
-├── src/            # Código Python reutilizável
+├── src/apns/       # Pacote Python reutilizável
 ├── results/        # Tabelas, gráficos e resultados exportados
 ├── docs/           # Decisões metodológicas e documentação
-├── tests/          # Testes
+├── pyproject.toml  # Metadados e dependências do projeto
+├── .python-version
 ├── .gitignore
-├── README.md
-└── requirements.txt
+└── README.md
 ```
 
 ## Ambiente de desenvolvimento
 
-Recomendamos Python com ambiente virtual (`venv`). Depois de criar e ativar o ambiente, instale as dependências:
+O projeto usa [uv](https://docs.astral.sh/uv/), é preciso tê-lo instalado.
 
 ```bash
-python -m venv .venv
+uv sync         
+uv run apns    
+uv run
 ```
 
-Linux/macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-Windows PowerShell:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Instale as dependências com:
-
-```bash
-python -m pip install -r requirements.txt
-```
+Use `uv format` e instale a extensão 'Ruff', para manter o codigo padronizado.
