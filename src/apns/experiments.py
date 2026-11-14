@@ -7,6 +7,7 @@ import pandas as pd
 from apns import metrics
 from apns.models import dbscan
 from apns.models import hierarchical
+from apns.models import kernel_fuzzy_kmeans
 from apns.models import kmedoids
 from apns.models import treinable_model
 from apns.visualization import (
@@ -15,6 +16,8 @@ from apns.visualization import (
     plot_hierarchical_dendrogram,
     plot_kmedoids_inertia,
     plot_kmedoids_silhouette,
+    plot_membership_degrees,
+    plot_objective_convergence,
 )
 
 
@@ -43,6 +46,117 @@ def evaluate_kmeanslike_model(
                 }
             )
     return pd.DataFrame(results)
+
+
+def evaluate_kernel_fuzzy_kmeans_model(
+    x: pd.DataFrame,
+    y: pd.Series,
+    max_n_cluster: int = 5,
+    max_iter: int = 10,
+    m: float = 2.0,
+    sigma2: float | None = None,
+    n_init: int = 1,
+    model_max_iter: int = 100,
+    tol: float = 1e-5,
+) -> pd.DataFrame:
+    results = []
+    for k in range(1, max_n_cluster + 1):
+        for iteration in range(max_iter):
+            model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
+                n_clusters=k,
+                random_state=iteration,
+                m=m,
+                sigma2=sigma2,
+                n_init=n_init,
+                max_iter=model_max_iter,
+                tol=tol,
+            )
+            model.fit(x)
+            clusters = model.predict(x)
+            results.append(
+                {
+                    "model_name": model.__class__.__name__,
+                    "iter": iteration,
+                    "k": k,
+                    "m": m,
+                    "sigma2": model.sigma2,
+                    "n_init": n_init,
+                    "silhouette": metrics.calcular_silhueta(x, clusters),
+                    "rand_score": metrics.calcular_ari(y, clusters),
+                    "objective": model.objective_,
+                    "n_iter": model.n_iter_,
+                }
+            )
+    return pd.DataFrame(results)
+
+
+def export_kernel_fuzzy_kmeans_results(
+    x: pd.DataFrame,
+    y: pd.Series,
+    max_n_cluster: int = 5,
+    max_iter: int = 10,
+    m: float = 2.0,
+    sigma2: float | None = None,
+    n_init: int = 1,
+    model_max_iter: int = 100,
+    tol: float = 1e-5,
+    results_dir: Path | None = None,
+) -> pd.DataFrame:
+    results = evaluate_kernel_fuzzy_kmeans_model(
+        x=x,
+        y=y,
+        max_n_cluster=max_n_cluster,
+        max_iter=max_iter,
+        m=m,
+        sigma2=sigma2,
+        n_init=n_init,
+        model_max_iter=model_max_iter,
+        tol=tol,
+    )
+
+    if results_dir is None:
+        project_root = Path(__file__).resolve().parents[2]
+        results_dir = project_root / "results"
+    else:
+        results_dir = Path(results_dir)
+
+    tables_dir = results_dir / "tables"
+    figures_dir = results_dir / "figures"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
+    results.to_csv(tables_dir / "kernel_fuzzy_kmeans_metrics.csv", index=False)
+
+    valid_results = results.dropna(subset=["silhouette"])
+    best_result = (
+        valid_results.loc[valid_results["silhouette"].idxmax()]
+        if not valid_results.empty
+        else results.loc[results["objective"].idxmin()]
+    )
+    model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
+        n_clusters=int(best_result["k"]),
+        random_state=int(best_result["iter"]),
+        m=m,
+        sigma2=sigma2,
+        n_init=n_init,
+        max_iter=model_max_iter,
+        tol=tol,
+    )
+    model.fit(x)
+    clusters_fig = plot_cluster_assignments(
+        x,
+        model.labels_,
+        "Kernel Fuzzy K-Means: melhor agrupamento",
+    )
+    clusters_fig.savefig(figures_dir / "kernel_fuzzy_kmeans_clusters.png")
+
+    membership_fig = plot_membership_degrees(model.membership_)
+    membership_fig.savefig(figures_dir / "kernel_fuzzy_kmeans_memberships.png")
+
+    objective_fig = plot_objective_convergence(model.objective_history_)
+    objective_fig.savefig(figures_dir / "kernel_fuzzy_kmeans_objective_convergence.png")
+
+    return results
 
 
 def evaluate_hierarchical_model(
