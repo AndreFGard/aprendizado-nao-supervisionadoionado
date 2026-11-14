@@ -2,6 +2,7 @@ from apns import data
 from apns.experiments import (
     export_dbscan_results,
     export_hierarchical_results,
+    export_kernel_fuzzy_kmeans_results,
     export_kmedoids_results,
     test_kmedoids_model,
 )
@@ -49,6 +50,16 @@ def main() -> None:
         max_n_cluster=5,
     )
     print("\nResultados e gráfico do agrupamento hierárquico exportados.")
+
+    export_kernel_fuzzy_kmeans_results(
+        x=X,
+        y=y,
+        max_n_cluster=5,
+        max_iter=10,
+        m=2.0,
+        n_init=5,
+    )
+    print("\nResultados do Kernel Fuzzy K-Means exportados.")
 
 
 if __name__ == "__main__":

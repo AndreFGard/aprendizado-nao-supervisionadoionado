@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import plotly
 import plotly.express as px
@@ -92,6 +93,29 @@ def plot_cluster_assignments(
     axis.set_ylabel(x.columns[1])
     axis.set_title(title)
     figure.colorbar(scatter, ax=axis, label="Rótulo do cluster")
+    figure.tight_layout()
+    return figure
+
+
+def plot_membership_degrees(membership: np.ndarray) -> Figure:
+    figure, axis = plt.subplots(figsize=(10, 5))
+    image = axis.imshow(membership.T, aspect="auto", cmap="viridis", vmin=0, vmax=1)
+    axis.set_xlabel("Amostra")
+    axis.set_ylabel("Cluster")
+    axis.set_title("Kernel Fuzzy K-Means: graus de pertinência")
+    axis.set_yticks(range(membership.shape[1]))
+    figure.colorbar(image, ax=axis, label="Pertinência")
+    figure.tight_layout()
+    return figure
+
+
+def plot_objective_convergence(objective_history: list[float]) -> Figure:
+    figure, axis = plt.subplots(figsize=(8, 5))
+    axis.plot(range(1, len(objective_history) + 1), objective_history, marker="o")
+    axis.set_xlabel("Iteração")
+    axis.set_ylabel("Função objetivo")
+    axis.set_title("Kernel Fuzzy K-Means: convergência da função objetivo")
+    axis.grid()
     figure.tight_layout()
     return figure
 
