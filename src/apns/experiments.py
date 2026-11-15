@@ -359,7 +359,10 @@ def evaluate_dbscan_model(
                 "n_clusters": n_clusters,
                 "n_ruido": n_ruido,
                 "silhouette": silhouete,
-                "rand_score": metrics.calcular_ari(y, clusters),
+                "rand_score": metrics.calcular_ari(
+                    y.loc[pontos_validos],
+                    clusters[pontos_validos],
+                ),
                 "labels": json.dumps(clusters.tolist()),
             }
         ]
