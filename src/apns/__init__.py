@@ -17,6 +17,8 @@ def main() -> None:
     print("\nDistribuição das espécies:")
     print(y.value_counts().sort_index())
 
+    print("\n--- Executando os algoritmos DBSCAN, K-Medoids, UPGMC, Kernel Fuzzy K-Means ---")
+
     """ {DBSCAN}
     aumentar eps aumenta o raio de vizinhança. em geral, mais pontos passam a ser alcançáveis e regiões podem se unir
     aumentar minpts aumenta a  quantidade mínima de pontos necessária para formar uma região densa. em geral, fica mais difícil formar regiões e alguns pontos podem virar ruído
@@ -57,7 +59,8 @@ def main() -> None:
         y=y,
         max_n_cluster=5,
         max_iter=10,
-        m=2.0,
+        m_values=[1.5, 2.0, 2.5],
+        sigma2_values=[None, 0.5, 1.0, 2.0],
         n_init=5,
     )
     print("\nResultados do Kernel Fuzzy K-Means exportados.")
