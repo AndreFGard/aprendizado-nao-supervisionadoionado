@@ -29,7 +29,7 @@ def evaluate_kmeanslike_model(
     max_iter=10,
 ):
     results = []
-    for k in range(1, max_n_cluster + 1):
+    for k in range(2, max_n_cluster + 1):
         for iter in range(max_iter):
             model = model_cls.create(n_clusters=k, random_state=iter)
             model.fit(x)
@@ -58,35 +58,41 @@ def evaluate_kernel_fuzzy_kmeans_model(
     n_init: int = 1,
     model_max_iter: int = 100,
     tol: float = 1e-5,
+    m_values: list[float] | None = None,
+    sigma2_values: list[float | None] | None = None,
 ) -> pd.DataFrame:
+    m_values = [m] if m_values is None else m_values
+    sigma2_values = [sigma2] if sigma2_values is None else sigma2_values
     results = []
-    for k in range(1, max_n_cluster + 1):
-        for iteration in range(max_iter):
-            model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
-                n_clusters=k,
-                random_state=iteration,
-                m=m,
-                sigma2=sigma2,
-                n_init=n_init,
-                max_iter=model_max_iter,
-                tol=tol,
-            )
-            model.fit(x)
-            clusters = model.predict(x)
-            results.append(
-                {
-                    "model_name": model.__class__.__name__,
-                    "iter": iteration,
-                    "k": k,
-                    "m": m,
-                    "sigma2": model.sigma2,
-                    "n_init": n_init,
-                    "silhouette": metrics.calcular_silhueta(x, clusters),
-                    "rand_score": metrics.calcular_ari(y, clusters),
-                    "objective": model.objective_,
-                    "n_iter": model.n_iter_,
-                }
-            )
+    for k in range(2, max_n_cluster + 1):
+        for m_value in m_values:
+            for sigma2_value in sigma2_values:
+                for iteration in range(max_iter):
+                    model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
+                        n_clusters=k,
+                        random_state=iteration,
+                        m=m_value,
+                        sigma2=sigma2_value,
+                        n_init=n_init,
+                        max_iter=model_max_iter,
+                        tol=tol,
+                    )
+                    model.fit(x)
+                    clusters = model.predict(x)
+                    results.append(
+                        {
+                            "model_name": model.__class__.__name__,
+                            "iter": iteration,
+                            "k": k,
+                            "m": m_value,
+                            "sigma2": model.sigma2,
+                            "n_init": n_init,
+                            "silhouette": metrics.calcular_silhueta(x, clusters),
+                            "rand_score": metrics.calcular_ari(y, clusters),
+                            "objective": model.objective_,
+                            "n_iter": model.n_iter_,
+                        }
+                    )
     return pd.DataFrame(results)
 
 
@@ -100,6 +106,8 @@ def export_kernel_fuzzy_kmeans_results(
     n_init: int = 1,
     model_max_iter: int = 100,
     tol: float = 1e-5,
+    m_values: list[float] | None = None,
+    sigma2_values: list[float | None] | None = None,
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
     results = evaluate_kernel_fuzzy_kmeans_model(
@@ -112,6 +120,8 @@ def export_kernel_fuzzy_kmeans_results(
         n_init=n_init,
         model_max_iter=model_max_iter,
         tol=tol,
+        m_values=m_values,
+        sigma2_values=sigma2_values,
     )
 
     if results_dir is None:
@@ -136,8 +146,8 @@ def export_kernel_fuzzy_kmeans_results(
     model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
         n_clusters=int(best_result["k"]),
         random_state=int(best_result["iter"]),
-        m=m,
-        sigma2=sigma2,
+        m=float(best_result["m"]),
+        sigma2=best_result["sigma2"],
         n_init=n_init,
         max_iter=model_max_iter,
         tol=tol,
@@ -163,20 +173,23 @@ def evaluate_hierarchical_model(
     x: pd.DataFrame,
     y: pd.Series,
     max_n_cluster: int = 5,
+    max_iter: int = 10,
 ) -> pd.DataFrame:
     results = []
-    for k in range(1, max_n_cluster + 1):
-        model = hierarchical.HierarchicalCentroid.create(n_clusters=k)
-        clusters = model.fit_predict(x)
-        results.append(
-            {
-                "model_name": model.__class__.__name__,
-                "iter": 0,
-                "k": k,
-                "silhouette": metrics.calcular_silhueta(x, clusters),
-                "rand_score": metrics.calcular_ari(y, clusters),
-            }
-        )
+    for k in range(2, max_n_cluster + 1):
+        for iteration in range(max_iter):
+            model = hierarchical.HierarchicalCentroid.create(n_clusters=k)
+            clusters = model.fit_predict(x)
+            results.append(
+                {
+                    "model_name": model.__class__.__name__,
+                    "iter": iteration,
+                    "k": k,
+                    "linkage": "centroid",
+                    "silhouette": metrics.calcular_silhueta(x, clusters),
+                    "rand_score": metrics.calcular_ari(y, clusters),
+                }
+            )
     return pd.DataFrame(results)
 
 
@@ -184,12 +197,14 @@ def export_hierarchical_results(
     x: pd.DataFrame,
     y: pd.Series,
     max_n_cluster: int = 5,
+    max_iter: int = 10,
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
     results = evaluate_hierarchical_model(
         x=x,
         y=y,
         max_n_cluster=max_n_cluster,
+        max_iter=max_iter,
     )
 
     if results_dir is None:
@@ -216,37 +231,39 @@ def export_hierarchical_results(
 def evaluate_kmedoids_model(
     x: pd.DataFrame,
     y: pd.Series,
-    metric: str = "cityblock",
+    metric: str | list[str] = "cityblock",
     max_n_cluster: int = 5,
     max_iter: int = 10,
 ) -> pd.DataFrame:
+    metric_values = [metric] if isinstance(metric, str) else metric
     results = []
-    for k in range(1, max_n_cluster + 1):
-        for iteration in range(max_iter):
-            model = kmedoids.KMedoids.create(
-                n_clusters=k,
-                metric=metric,
-                random_state=iteration,
-            )
-            model.fit(x)
+    for metric_value in metric_values:
+        for k in range(2, max_n_cluster + 1):
+            for iteration in range(max_iter):
+                model = kmedoids.KMedoids.create(
+                    n_clusters=k,
+                    metric=metric_value,
+                    random_state=iteration,
+                )
+                model.fit(x)
 
-            clusters = model.predict(x)
-            results.append(
-                {
-                    "model_name": kmedoids.KMedoids.__name__,
-                    "iter": iteration,
-                    "k": k,
-                    "metric": metric,
-                    "silhouette": metrics.calcular_silhueta(
-                        x,
-                        clusters,
-                        metric=metric,
-                    ),
-                    "inertia": model.inertia_,
-                    "rand_score": metrics.calcular_ari(y, clusters),
-                    "labels": json.dumps(clusters.tolist()),
-                }
-            )
+                clusters = model.predict(x)
+                results.append(
+                    {
+                        "model_name": kmedoids.KMedoids.__name__,
+                        "iter": iteration,
+                        "k": k,
+                        "metric": metric_value,
+                        "silhouette": metrics.calcular_silhueta(
+                            x,
+                            clusters,
+                            metric=metric_value,
+                        ),
+                        "inertia": model.inertia_,
+                        "rand_score": metrics.calcular_ari(y, clusters),
+                        "labels": json.dumps(clusters.tolist()),
+                    }
+                )
     return pd.DataFrame(results)
 
 
@@ -277,7 +294,7 @@ def select_best_kmedoids_configuration(results: pd.DataFrame) -> pd.DataFrame:
 def export_kmedoids_results(
     x: pd.DataFrame,
     y: pd.Series,
-    metric: str = "cityblock",
+    metric: str | list[str] = "cityblock",
     max_n_cluster: int = 5,
     max_iter: int = 10,
     results_dir: Path | None = None,
@@ -359,7 +376,10 @@ def evaluate_dbscan_model(
                 "n_clusters": n_clusters,
                 "n_ruido": n_ruido,
                 "silhouette": silhouete,
-                "rand_score": metrics.calcular_ari(y, clusters),
+                "rand_score": metrics.calcular_ari(
+                    y.loc[pontos_validos],
+                    clusters[pontos_validos],
+                ),
                 "labels": json.dumps(clusters.tolist()),
             }
         ]
@@ -421,3 +441,49 @@ def export_dbscan_results(
     selected_clusters_fig.savefig(figures_dir / "dbscan_clusters.png")
 
     return all_results
+
+
+def comparar_algoritmos_por_silhueta(
+    resultados: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    """Compara cada algoritmo pela configuração de maior silhueta."""
+    comparacao = []
+    for nome, resultados_modelo in resultados.items():
+        validos = resultados_modelo.dropna(subset=["silhouette"])
+        melhor = validos.loc[validos["silhouette"].idxmax()]
+        comparacao.append(
+            {
+                "algorithm": nome,
+                "n_clusters": melhor.get("k", melhor.get("n_clusters")),
+                "silhouette": melhor["silhouette"],
+                "rand_score": melhor["rand_score"],
+                "metric": melhor.get("metric"),
+                "linkage": melhor.get("linkage"),
+                "m": melhor.get("m"),
+                "sigma2": melhor.get("sigma2"),
+                "eps": melhor.get("eps"),
+                "minpts": melhor.get("minpts"),
+            }
+        )
+
+    return pd.DataFrame(comparacao).sort_values(
+        "silhouette",
+        ascending=False,
+    ).reset_index(drop=True)
+
+
+def export_comparacao_algoritmos(
+    resultados: dict[str, pd.DataFrame],
+    results_dir: Path | None = None,
+) -> pd.DataFrame:
+    """Exporta a comparação dos algoritmos para uma tabela CSV."""
+    if results_dir is None:
+        project_root = Path(__file__).resolve().parents[2]
+        results_dir = project_root / "results"
+
+    tables_dir = Path(results_dir) / "tables"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+
+    comparacao = comparar_algoritmos_por_silhueta(resultados)
+    comparacao.to_csv(tables_dir / "algorithm_comparison.csv", index=False)
+    return comparacao

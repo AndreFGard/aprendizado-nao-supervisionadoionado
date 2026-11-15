@@ -15,14 +15,20 @@ class KMedoids(treinable_model.ITreinableModel):
         self.inertia_: float | None = None
 
     @classmethod
-    def create(cls, n_clusters: int, metric: str, random_state: int) -> "KMedoids":
+    def create(
+        cls,
+        n_clusters: int,
+        metric: str,
+        random_state: int,
+        max_iter: int = 300,
+    ) -> "KMedoids":
         return cls(
             SklearnKMedoids(
                 n_clusters=n_clusters,
                 metric=metric,
                 method="alternate",
                 init="heuristic",
-                max_iter=300,
+                max_iter=max_iter,
                 random_state=random_state,
             )
         )

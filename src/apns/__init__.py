@@ -1,6 +1,7 @@
 from apns import data
 from apns.experiments import (
     export_dbscan_results,
+    export_comparacao_algoritmos,
     export_hierarchical_results,
     export_kernel_fuzzy_kmeans_results,
     export_kmedoids_results,
@@ -16,6 +17,8 @@ def main() -> None:
     print("\nDistribuição das espécies:")
     print(y.value_counts().sort_index())
 
+    print("\n--- Executando os algoritmos DBSCAN, K-Medoids, UPGMC, Kernel Fuzzy K-Means ---")
+
     """ {DBSCAN}
     aumentar eps aumenta o raio de vizinhança. em geral, mais pontos passam a ser alcançáveis e regiões podem se unir
     aumentar minpts aumenta a  quantidade mínima de pontos necessária para formar uma região densa. em geral, fica mais difícil formar regiões e alguns pontos podem virar ruído
@@ -23,7 +26,7 @@ def main() -> None:
 
     eps_values = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
     minpts_values = [3, 5, 7, 10, 15]
-    export_dbscan_results(
+    dbscan_results = export_dbscan_results(
         x=X,
         y=y,
         eps_values=eps_values,
@@ -35,7 +38,7 @@ def main() -> None:
     """ {K-Medoids}
     """
     test_kmedoids_model(X, metric="cityblock")
-    export_kmedoids_results(
+    kmedoids_results = export_kmedoids_results(
         x=X,
         y=y,
         metric="cityblock",
@@ -44,22 +47,34 @@ def main() -> None:
     )
     print("\nResultados e gráficos do K-Medoids exportados.")
 
-    export_hierarchical_results(
+    hierarchical_results = export_hierarchical_results(
         x=X,
         y=y,
         max_n_cluster=5,
     )
     print("\nResultados e gráfico do agrupamento hierárquico exportados.")
 
-    export_kernel_fuzzy_kmeans_results(
+    kernel_fuzzy_kmeans_results = export_kernel_fuzzy_kmeans_results(
         x=X,
         y=y,
         max_n_cluster=5,
         max_iter=10,
-        m=2.0,
+        m_values=[1.5, 2.0, 2.5],
+        sigma2_values=[None, 0.5, 1.0, 2.0],
         n_init=5,
     )
     print("\nResultados do Kernel Fuzzy K-Means exportados.")
+
+    comparison = export_comparacao_algoritmos(
+        {
+            "DBSCAN": dbscan_results,
+            "K-Medoids": kmedoids_results,
+            "Hierárquico": hierarchical_results,
+            "Kernel Fuzzy K-Means": kernel_fuzzy_kmeans_results,
+        }
+    )
+    print("\nComparação dos algoritmos:")
+    print(comparison)
 
 
 if __name__ == "__main__":
