@@ -424,3 +424,43 @@ def export_dbscan_results(
     selected_clusters_fig.savefig(figures_dir / "dbscan_clusters.png")
 
     return all_results
+
+
+def comparar_algoritmos_por_silhueta(
+    resultados: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    """Compara cada algoritmo pela configuração de maior silhueta."""
+    comparacao = []
+    for nome, resultados_modelo in resultados.items():
+        validos = resultados_modelo.dropna(subset=["silhouette"])
+        melhor = validos.loc[validos["silhouette"].idxmax()]
+        comparacao.append(
+            {
+                "algorithm": nome,
+                "n_clusters": melhor.get("k", melhor.get("n_clusters")),
+                "silhouette": melhor["silhouette"],
+                "rand_score": melhor["rand_score"],
+            }
+        )
+
+    return pd.DataFrame(comparacao).sort_values(
+        "silhouette",
+        ascending=False,
+    ).reset_index(drop=True)
+
+
+def export_comparacao_algoritmos(
+    resultados: dict[str, pd.DataFrame],
+    results_dir: Path | None = None,
+) -> pd.DataFrame:
+    """Exporta a comparação dos algoritmos para uma tabela CSV."""
+    if results_dir is None:
+        project_root = Path(__file__).resolve().parents[2]
+        results_dir = project_root / "results"
+
+    tables_dir = Path(results_dir) / "tables"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+
+    comparacao = comparar_algoritmos_por_silhueta(resultados)
+    comparacao.to_csv(tables_dir / "algorithm_comparison.csv", index=False)
+    return comparacao
