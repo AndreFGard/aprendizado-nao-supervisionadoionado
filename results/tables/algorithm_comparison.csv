@@ -1,0 +1,5 @@
+algorithm,n_clusters,silhouette,rand_score,metric,linkage,m,sigma2,eps,minpts
+DBSCAN,2,0.8462121684626018,1.0,,,,,0.3,7.0
+Hierárquico,2,0.6863930543445408,0.5681159420289855,,centroid,,,,
+Kernel Fuzzy K-Means,2,0.6863930543445408,0.5681159420289855,,,1.5,0.5,,
+K-Medoids,2,0.6738599467417695,0.5399218294207123,cityblock,,,,,
