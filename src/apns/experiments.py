@@ -29,7 +29,7 @@ def evaluate_kmeanslike_model(
     max_iter=10,
 ):
     results = []
-    for k in range(1, max_n_cluster + 1):
+    for k in range(2, max_n_cluster + 1):
         for iter in range(max_iter):
             model = model_cls.create(n_clusters=k, random_state=iter)
             model.fit(x)
@@ -60,7 +60,7 @@ def evaluate_kernel_fuzzy_kmeans_model(
     tol: float = 1e-5,
 ) -> pd.DataFrame:
     results = []
-    for k in range(1, max_n_cluster + 1):
+    for k in range(2, max_n_cluster + 1):
         for iteration in range(max_iter):
             model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
                 n_clusters=k,
@@ -165,7 +165,7 @@ def evaluate_hierarchical_model(
     max_n_cluster: int = 5,
 ) -> pd.DataFrame:
     results = []
-    for k in range(1, max_n_cluster + 1):
+    for k in range(2, max_n_cluster + 1):
         model = hierarchical.HierarchicalCentroid.create(n_clusters=k)
         clusters = model.fit_predict(x)
         results.append(
@@ -221,7 +221,7 @@ def evaluate_kmedoids_model(
     max_iter: int = 10,
 ) -> pd.DataFrame:
     results = []
-    for k in range(1, max_n_cluster + 1):
+    for k in range(2, max_n_cluster + 1):
         for iteration in range(max_iter):
             model = kmedoids.KMedoids.create(
                 n_clusters=k,
