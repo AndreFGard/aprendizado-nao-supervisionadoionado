@@ -42,4 +42,18 @@
   Neste trabalho, o algoritmo foi implementado pela classe `HierarchicalCentroid`, utilizando a função `linkage` da biblioteca SciPy com o método centroid e distância euclidiana. A matriz de ligação foi construída sobre os atributos originais e cortada posteriormente para obter partições com diferentes valores de $k$. Foram avaliados valores de $k$ entre 2 e 5. Para cada valor, a partição foi obtida por meio da função `cut_tree` e o procedimento foi registrado dez vezes, totalizando 40 registros. Em cada configuração, foram calculados o Silhouette Score, utilizando a distância euclidiana, e o ARI em relação às espécies reais. Também foi gerado um dendrograma a partir da matriz de ligação para representar a estrutura hierárquica completa.
 
   = Técnicas de redução de dimensionalidade
+
+  == PCA
+
+  == Kernel PCA
+
+  == t-SNE
+
+  O t-SNE foi utilizado para representar os quatro atributos numéricos da base Iris em um espaço bidimensional, preservando principalmente relações de vizinhança. Para isso, converte as proximidades no espaço original em probabilidades e busca uma configuração de baixa dimensão com distribuição de vizinhanças semelhante, utilizando uma distribuição t de Student.
+
+  O algoritmo foi implementado com a classe `TSNE` do Scikit-learn, utilizando inicialização PCA, taxa de aprendizado automática, no máximo 1000 iterações e semente 42. Os atributos foram usados em seus valores originais, sem os rótulos de espécie. Foram avaliadas as perplexidades $5$, $10$, $20$ e $30$, que controlam o número efetivo de vizinhos considerados. Para cada configuração, foram registrados a divergência de Kullback--Leibler e o número de iterações realizadas.
+
+  A qualidade dos embeddings foi avaliada pelo Silhouette Score no espaço bidimensional, usando as espécies reais apenas como referência. A configuração com maior silhueta foi selecionada para a visualização final. Os embeddings e as métricas foram exportados em tabelas e gráficos.
+
+  == UMAP
 ]
