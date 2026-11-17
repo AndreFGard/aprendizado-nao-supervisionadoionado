@@ -97,6 +97,101 @@ def plot_cluster_assignments(
     return figure
 
 
+def plot_tsne_embedding(
+    embedding: np.ndarray,
+    labels: pd.Series,
+    title: str = "Visualização do Iris utilizando t-SNE",
+) -> Figure:
+    figure, axis = plt.subplots(figsize=(9, 6))
+    labels_array = labels.to_numpy()
+
+    for label in pd.unique(labels_array):
+        mask = labels_array == label
+        axis.scatter(
+            embedding[mask, 0],
+            embedding[mask, 1],
+            label=str(label),
+            alpha=0.8,
+        )
+
+    axis.set_title(title)
+    axis.set_xlabel("Componente t-SNE 1")
+    axis.set_ylabel("Componente t-SNE 2")
+    axis.legend()
+    axis.grid(alpha=0.2)
+    figure.tight_layout()
+    return figure
+
+
+def plot_tsne_embeddings_comparison(
+    embeddings: dict[float, np.ndarray],
+    labels: pd.Series,
+) -> Figure:
+    perplexities = sorted(embeddings)
+    n_columns = min(2, len(perplexities))
+    n_rows = (len(perplexities) + n_columns - 1) // n_columns
+    figure, axes = plt.subplots(
+        n_rows,
+        n_columns,
+        figsize=(6 * n_columns, 5 * n_rows),
+        squeeze=False,
+    )
+    labels_array = labels.to_numpy()
+
+    for axis, perplexity in zip(axes.flat, perplexities):
+        embedding = embeddings[perplexity]
+        for label in pd.unique(labels_array):
+            mask = labels_array == label
+            axis.scatter(
+                embedding[mask, 0],
+                embedding[mask, 1],
+                label=str(label),
+                alpha=0.8,
+            )
+        axis.set_title(f"Perplexidade = {perplexity:g}")
+        axis.set_xlabel("Componente t-SNE 1")
+        axis.set_ylabel("Componente t-SNE 2")
+        axis.grid(alpha=0.2)
+
+    for axis in axes.flat[len(perplexities) :]:
+        axis.set_visible(False)
+
+    handles, legend_labels = axes.flat[0].get_legend_handles_labels()
+    figure.legend(handles, legend_labels, loc="lower center", ncol=2)
+    figure.suptitle("t-SNE: comparação dos embeddings por perplexidade")
+    figure.tight_layout(rect=(0, 0.05, 1, 0.95))
+    return figure
+
+
+def plot_tsne_perplexity_comparison(df_metrics: pd.DataFrame) -> Figure:
+    figure, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    ordered_metrics = df_metrics.sort_values("perplexity")
+    axes[0].plot(
+        ordered_metrics["perplexity"],
+        ordered_metrics["silhouette"],
+        marker="o",
+    )
+    axes[0].set_xlabel("Perplexidade")
+    axes[0].set_ylabel("Silhueta")
+    axes[0].set_title("Silhueta por perplexidade")
+    axes[0].grid(alpha=0.2)
+
+    axes[1].plot(
+        ordered_metrics["perplexity"],
+        ordered_metrics["kl_divergence"],
+        marker="o",
+    )
+    axes[1].set_xlabel("Perplexidade")
+    axes[1].set_ylabel("KL divergence")
+    axes[1].set_title("KL divergence por perplexidade")
+    axes[1].grid(alpha=0.2)
+
+    figure.suptitle("t-SNE: comparação de perplexidades")
+    figure.tight_layout()
+    return figure
+
+
 def plot_membership_degrees(membership: np.ndarray) -> Figure:
     figure, axis = plt.subplots(figsize=(10, 5))
     image = axis.imshow(membership.T, aspect="auto", cmap="viridis", vmin=0, vmax=1)

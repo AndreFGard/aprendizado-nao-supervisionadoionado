@@ -9,6 +9,7 @@ from apns.models import dbscan
 from apns.models import hierarchical
 from apns.models import kernel_fuzzy_kmeans
 from apns.models import kmedoids
+from apns.models import tsne
 from apns.models import treinable_model
 from apns.visualization import (
     plot_cluster_assignments,
@@ -18,6 +19,9 @@ from apns.visualization import (
     plot_kmedoids_silhouette,
     plot_membership_degrees,
     plot_objective_convergence,
+    plot_tsne_embedding,
+    plot_tsne_embeddings_comparison,
+    plot_tsne_perplexity_comparison,
 )
 
 
@@ -441,6 +445,105 @@ def export_dbscan_results(
     selected_clusters_fig.savefig(figures_dir / "dbscan_clusters.png")
 
     return all_results
+
+
+def evaluate_tsne_model(
+    x: pd.DataFrame,
+    y: pd.Series,
+    perplexity: float = 30.0,
+    max_iter: int = 1000,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    model = tsne.TSNE.create(
+        perplexity=perplexity,
+        max_iter=max_iter,
+        random_state=random_state,
+    )
+    embedding = model.fit_predict(x)
+
+    return pd.DataFrame(
+        [
+            {
+                "model_name": tsne.TSNE.__name__,
+                "perplexity": perplexity,
+                "max_iter": max_iter,
+                "random_state": random_state,
+                "silhouette": metrics.calcular_silhueta(embedding, y),
+                "kl_divergence": model.kl_divergence_,
+                "n_iter": model.n_iter_,
+            }
+        ]
+    )
+
+
+def export_tsne_results(
+    x: pd.DataFrame,
+    y: pd.Series,
+    perplexity_values: list[float] | None = None,
+    max_iter: int = 1000,
+    random_state: int = 42,
+    results_dir: Path | None = None,
+) -> pd.DataFrame:
+    perplexity_values = [30.0] if perplexity_values is None else perplexity_values
+    results = pd.concat(
+        [
+            evaluate_tsne_model(
+                x=x,
+                y=y,
+                perplexity=perplexity,
+                max_iter=max_iter,
+                random_state=random_state,
+            )
+            for perplexity in perplexity_values
+        ],
+        ignore_index=True,
+    )
+
+    if results_dir is None:
+        project_root = Path(__file__).resolve().parents[2]
+        results_dir = project_root / "results"
+
+    tables_dir = Path(results_dir) / "tables"
+    figures_dir = Path(results_dir) / "figures"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    results.to_csv(tables_dir / "tsne_metrics.csv", index=False)
+
+    embeddings = {}
+    for perplexity in perplexity_values:
+        model = tsne.TSNE.create(
+            perplexity=perplexity,
+            max_iter=max_iter,
+            random_state=random_state,
+        )
+        embeddings[perplexity] = model.fit_predict(x)
+
+    embeddings_figure = plot_tsne_embeddings_comparison(embeddings, y)
+    embeddings_figure.savefig(
+        figures_dir / "tsne_embeddings_perplexities.png",
+    )
+
+    perplexity_figure = plot_tsne_perplexity_comparison(results)
+    perplexity_figure.savefig(figures_dir / "tsne_perplexity_comparison.png")
+
+    best_result = results.loc[results["silhouette"].idxmax()]
+    best_model = tsne.TSNE.create(
+        perplexity=float(best_result["perplexity"]),
+        max_iter=max_iter,
+        random_state=random_state,
+    )
+    embedding = best_model.fit_predict(x)
+    figure = plot_tsne_embedding(
+        embedding,
+        y,
+        title=(
+            "Visualização do Iris utilizando t-SNE "
+            f"(perplexidade={best_result['perplexity']})"
+        ),
+    )
+    figure.savefig(figures_dir / "tsne_embedding.png")
+
+    return results
 
 
 def comparar_algoritmos_por_silhueta(
