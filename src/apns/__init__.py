@@ -7,7 +7,7 @@ from apns.experiments import (
     export_tsne_results,
     test_kmedoids_model,
 )
-from data import carregar_iris
+from apns.data import carregar_iris
 
 
 def main() -> None:
