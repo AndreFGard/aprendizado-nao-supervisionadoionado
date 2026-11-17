@@ -56,4 +56,10 @@
   A qualidade dos embeddings foi avaliada pelo Silhouette Score no espaço bidimensional, usando as espécies reais apenas como referência. A configuração com maior silhueta foi selecionada para a visualização final. Os embeddings e as métricas foram exportados em tabelas e gráficos.
 
   == UMAP
+
+  O UMAP foi utilizado para representar os quatro atributos numéricos da base Iris em um espaço bidimensional. O método constrói um grafo de vizinhanças no espaço original e otimiza uma representação de baixa dimensão que preserva sua estrutura local, podendo também manter relações globais entre as observações.
+
+  O algoritmo foi implementado com a classe `UMAP` da biblioteca `umap-learn`, utilizando distância euclidiana, dois componentes e semente aleatória 42. Os atributos foram usados em seus valores originais, sem os rótulos de espécie. Foram avaliados os valores de n_neighbors $in {5, 10, 15, 30}$ e min_dist $in {0.0, 0.1, 0.5}$, totalizando 12 configurações. O parâmetro n_neighbors controla o tamanho da vizinhança utilizada na construção do grafo, enquanto min_dist define a distância mínima entre pontos no embedding.
+
+  A qualidade dos embeddings foi avaliada pelo Silhouette Score no espaço bidimensional, usando as espécies reais apenas como referência. A configuração com maior silhueta foi selecionada para a visualização final. Os embeddings e as métricas foram exportados em tabelas e gráficos que comparam as configurações avaliadas.
 ]
