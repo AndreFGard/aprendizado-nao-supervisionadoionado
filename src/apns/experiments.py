@@ -569,10 +569,14 @@ def comparar_algoritmos_por_silhueta(
             }
         )
 
-    return pd.DataFrame(comparacao).sort_values(
-        "silhouette",
-        ascending=False,
-    ).reset_index(drop=True)
+    return (
+        pd.DataFrame(comparacao)
+        .sort_values(
+            "silhouette",
+            ascending=False,
+        )
+        .reset_index(drop=True)
+    )
 
 
 def export_comparacao_algoritmos(

@@ -18,7 +18,9 @@ def main() -> None:
     print("\nDistribuição das espécies:")
     print(y.value_counts().sort_index())
 
-    print("\n--- Executando os algoritmos de agrupamento DBSCAN, K-Medoids, UPGMC, Kernel Fuzzy K-Means ---")
+    print(
+        "\n--- Executando os algoritmos de agrupamento DBSCAN, K-Medoids, UPGMC, Kernel Fuzzy K-Means ---"
+    )
 
     """ {DBSCAN}
     aumentar eps aumenta o raio de vizinhança. em geral, mais pontos passam a ser alcançáveis e regiões podem se unir
@@ -79,13 +81,13 @@ def main() -> None:
 
     print("\n--- Executando os algoritmos de redução de dimensionalidade t-SNE ---")
 
-
     export_tsne_results(
         x=X,
         y=y,
         perplexity_values=[5.0, 10.0, 20.0, 30.0],
     )
     print("\nResultados e gráfico do t-SNE exportados.")
+
 
 if __name__ == "__main__":
     main()
