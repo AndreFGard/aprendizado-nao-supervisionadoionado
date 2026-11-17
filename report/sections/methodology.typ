@@ -26,7 +26,14 @@
   O algoritmo foi implementado pela classe `KernelFuzzyKMeans`. A matriz de pertinências é inicializada aleatoriamente e atualizada iterativamente a partir das distâncias aos protótipos implícitos no espaço do kernel. Foram utilizadas no máximo 100 iterações por ajuste, com tolerância $10^(-5)$ para a variação da função objetivo. Para cada configuração, foram realizadas cinco inicializações internas, mantendo-se a solução de menor valor da função objetivo.
 
   Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, $"m" in {1.5, 2.0, 2.5}$ e $"sigma2" in {"None", 0.5, 1.0, 2.0}$. Isso resultou em 48 combinações de parâmetros. Cada combinação foi executada dez vezes, com sementes distintas, totalizando 480 execuções. Para cada execução, foram registrados o Silhouette Score, o ARI, o valor final da função objetivo e o número de iterações realizadas. A configuração usada nas visualizações do agrupamento, dos graus de pertinência e da convergência da função objetivo foi selecionada pelo maior Silhouette Score entre as execuções avaliadas.
-  == K-Medoids com distância city-block
+
+  == K-Medoids
+
+  O K-Medoids é um método particional que representa cada agrupamento por um medóide, isto é, uma observação efetivamente presente na base. Diferentemente do K-Means, seus protótipos não precisam ser centróides abstratos, e o método pode ser aplicado diretamente com diferentes medidas de distância.
+
+  Neste trabalho, o algoritmo foi implementado por meio da classe `KMedoids` da biblioteca Scikit-learn-extra, utilizando a distância city-block (Manhattan). A inicialização dos medóides foi heurística e o procedimento de otimização utilizado foi o método alternate, com limite máximo de 300 iterações por ajuste. Após o treinamento, cada observação foi associada ao medóide mais próximo.
+
+  Foram avaliados valores de $k$ entre 2 e 5. Para cada valor de $k$, o modelo foi executado dez vezes, utilizando sementes distintas, totalizando 40 execuções. Em cada execução, foram registrados o Silhouette Score, calculado com a distância city-block, o ARI e a inércia. A inércia corresponde à soma das distâncias das observações aos medóides atribuídos. Para cada valor de $k$, foi selecionada a execução de menor inércia. A configuração utilizada na visualização do agrupamento foi selecionada, entre todas as execuções válidas, pelo maior Silhouette Score. Os resultados também foram organizados em gráficos que relacionam $k$ à silhueta e à inércia.
 
   == Agrupamento hierárquico Centroid Linkage (UPGMC)
 
