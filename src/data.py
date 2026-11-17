@@ -1,10 +1,25 @@
+from pathlib import Path
+
 import pandas as pd
 
 
-def carregar_iris():
+def carregar_iris(dataset_path: str | Path | None = None):
     """Carrega e valida a base Iris padrão."""
 
-    iris = pd.read_csv("data/iris.data.csv")
+    if dataset_path is None:
+        dataset_path = Path(__file__).resolve().parents[1] / "data" / "iris.data.csv"
+
+    iris = pd.read_csv(
+        dataset_path,
+        header=None,
+        names=[
+            "sepal_length",
+            "sepal_width",
+            "petal_length",
+            "petal_width",
+            "species",
+        ],
+    )
 
     X = iris.iloc[:, 0:4]
     y = iris.iloc[:, -1]

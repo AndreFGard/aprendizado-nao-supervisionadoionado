@@ -1,14 +1,17 @@
 import json
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.figure import Figure
 
 from apns import metrics
 from apns.models import dbscan
 from apns.models import hierarchical
 from apns.models import kernel_fuzzy_kmeans
 from apns.models import kmedoids
+from apns.models import tsne
 from apns.models import treinable_model
 from apns.visualization import (
     plot_cluster_assignments,
@@ -18,20 +21,64 @@ from apns.visualization import (
     plot_kmedoids_silhouette,
     plot_membership_degrees,
     plot_objective_convergence,
+    plot_tsne_embedding,
+    plot_tsne_embeddings_comparison,
+    plot_tsne_perplexity_comparison,
 )
 
 
+def _prepare_results_directories(
+    results_dir: Path | None,
+) -> tuple[Path, Path]:
+    if results_dir is None:
+        results_dir = Path(__file__).resolve().parents[2] / "results"
+    else:
+        results_dir = Path(results_dir)
+
+    tables_dir = results_dir / "tables"
+    figures_dir = results_dir / "figures"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    return tables_dir, figures_dir
+
+
+def _save_figure(figure: Figure, path: Path) -> None:
+    figure.savefig(path)
+    plt.close(figure)
+
+
+def _save_table(
+    results: pd.DataFrame,
+    tables_dir: Path,
+    filename: str,
+) -> None:
+    results.to_csv(tables_dir / filename, index=False)
+
+
+def _select_best_row(
+    results: pd.DataFrame,
+    metric: str,
+    fallback_metric: str | None = None,
+) -> pd.Series:
+    valid_results = results.dropna(subset=[metric])
+    if not valid_results.empty:
+        return valid_results.loc[valid_results[metric].idxmax()]
+    if fallback_metric is not None:
+        valid_results = results.dropna(subset=[fallback_metric])
+        if not valid_results.empty:
+            return valid_results.loc[valid_results[fallback_metric].idxmin()]
+
 def evaluate_kmeanslike_model(
-    x,
-    y,
+    x: pd.DataFrame,
+    y: pd.Series,
     model_cls: type[treinable_model.IPredictiveModel],
-    max_n_cluster=5,
-    max_iter=10,
-):
+    max_n_cluster: int = 5,
+    max_iter: int = 10,
+) -> pd.DataFrame:
     results = []
     for k in range(2, max_n_cluster + 1):
-        for iter in range(max_iter):
-            model = model_cls.create(n_clusters=k, random_state=iter)
+        for iteration in range(max_iter):
+            model = model_cls.create(n_clusters=k, random_state=iteration)
             model.fit(x)
 
             clusters = model.predict(x)
@@ -39,7 +86,7 @@ def evaluate_kmeanslike_model(
             results.append(
                 {
                     "model_name": model_cls.__name__,
-                    "iter": iter,
+                    "iter": iteration,
                     "k": k,
                     "silhouette": silhouette,
                     "rand_score": metrics.calcular_ari(y, clusters),
@@ -124,24 +171,14 @@ def export_kernel_fuzzy_kmeans_results(
         sigma2_values=sigma2_values,
     )
 
-    if results_dir is None:
-        project_root = Path(__file__).resolve().parents[2]
-        results_dir = project_root / "results"
-    else:
-        results_dir = Path(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
-    tables_dir = results_dir / "tables"
-    figures_dir = results_dir / "figures"
-    tables_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir.mkdir(parents=True, exist_ok=True)
+    _save_table(results, tables_dir, "kernel_fuzzy_kmeans_metrics.csv")
 
-    results.to_csv(tables_dir / "kernel_fuzzy_kmeans_metrics.csv", index=False)
-
-    valid_results = results.dropna(subset=["silhouette"])
-    best_result = (
-        valid_results.loc[valid_results["silhouette"].idxmax()]
-        if not valid_results.empty
-        else results.loc[results["objective"].idxmin()]
+    best_result = _select_best_row(
+        results,
+        metric="silhouette",
+        fallback_metric="objective",
     )
     model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
         n_clusters=int(best_result["k"]),
@@ -158,13 +195,22 @@ def export_kernel_fuzzy_kmeans_results(
         model.labels_,
         "Kernel Fuzzy K-Means: melhor agrupamento",
     )
-    clusters_fig.savefig(figures_dir / "kernel_fuzzy_kmeans_clusters.png")
+    _save_figure(
+        clusters_fig,
+        figures_dir / "kernel_fuzzy_kmeans_clusters.png",
+    )
 
     membership_fig = plot_membership_degrees(model.membership_)
-    membership_fig.savefig(figures_dir / "kernel_fuzzy_kmeans_memberships.png")
+    _save_figure(
+        membership_fig,
+        figures_dir / "kernel_fuzzy_kmeans_memberships.png",
+    )
 
     objective_fig = plot_objective_convergence(model.objective_history_)
-    objective_fig.savefig(figures_dir / "kernel_fuzzy_kmeans_objective_convergence.png")
+    _save_figure(
+        objective_fig,
+        figures_dir / "kernel_fuzzy_kmeans_objective_convergence.png",
+    )
 
     return results
 
@@ -207,23 +253,16 @@ def export_hierarchical_results(
         max_iter=max_iter,
     )
 
-    if results_dir is None:
-        project_root = Path(__file__).resolve().parents[2]
-        results_dir = project_root / "results"
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
-    tables_dir = results_dir / "tables"
-    figures_dir = results_dir / "figures"
-    tables_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir.mkdir(parents=True, exist_ok=True)
-
-    results.to_csv(tables_dir / "hierarchical_metrics.csv", index=False)
+    _save_table(results, tables_dir, "hierarchical_metrics.csv")
 
     model = hierarchical.HierarchicalCentroid.create(
         n_clusters=2,
     )
     model.fit(x)
     dendrogram_fig = plot_hierarchical_dendrogram(model.linkage_matrix_)
-    dendrogram_fig.savefig(figures_dir / "hierarchical_dendrogram.png")
+    _save_figure(dendrogram_fig, figures_dir / "hierarchical_dendrogram.png")
 
     return results
 
@@ -286,9 +325,8 @@ def select_best_kmedoids_by_k(results: pd.DataFrame) -> pd.DataFrame:
 
 
 def select_best_kmedoids_configuration(results: pd.DataFrame) -> pd.DataFrame:
-    valid_results = results.dropna(subset=["silhouette"])
-    best_index = valid_results["silhouette"].idxmax()
-    return results.loc[[best_index]].reset_index(drop=True)
+    best_result = _select_best_row(results, metric="silhouette")
+    return results.loc[[best_result.name]].reset_index(drop=True)
 
 
 def export_kmedoids_results(
@@ -307,35 +345,29 @@ def export_kmedoids_results(
         max_iter=max_iter,
     )
 
-    if results_dir is None:
-        project_root = Path(__file__).resolve().parents[2]
-        results_dir = project_root / "results"
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
-    tables_dir = results_dir / "tables"
-    figures_dir = results_dir / "figures"
-    tables_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir.mkdir(parents=True, exist_ok=True)
-
-    results.to_csv(tables_dir / "kmedoids_metrics.csv", index=False)
+    _save_table(results, tables_dir, "kmedoids_metrics.csv")
     best_by_k = select_best_kmedoids_by_k(results)
     best_configuration = select_best_kmedoids_configuration(results)
-    best_by_k.to_csv(tables_dir / "kmedoids_best_by_k.csv", index=False)
-    best_configuration.to_csv(
-        tables_dir / "kmedoids_best_configuration.csv",
-        index=False,
+    _save_table(best_by_k, tables_dir, "kmedoids_best_by_k.csv")
+    _save_table(
+        best_configuration,
+        tables_dir,
+        "kmedoids_best_configuration.csv",
     )
 
     silhouette_fig = plot_kmedoids_silhouette(results)
-    silhouette_fig.savefig(figures_dir / "kmedoids_silhouette.png")
+    _save_figure(silhouette_fig, figures_dir / "kmedoids_silhouette.png")
     inertia_fig = plot_kmedoids_inertia(results)
-    inertia_fig.savefig(figures_dir / "kmedoids_inertia.png")
+    _save_figure(inertia_fig, figures_dir / "kmedoids_inertia.png")
     kmedoids_labels = json.loads(best_configuration.iloc[0]["labels"])
     clusters_fig = plot_cluster_assignments(
         x,
         kmedoids_labels,
         "K-Medoids: melhor agrupamento por silhueta",
     )
-    clusters_fig.savefig(figures_dir / "kmedoids_clusters.png")
+    _save_figure(clusters_fig, figures_dir / "kmedoids_clusters.png")
 
     return results
 
@@ -407,19 +439,12 @@ def export_dbscan_results(
     ]
     all_results = pd.concat(results, ignore_index=True)
 
-    if results_dir is None:
-        project_root = Path(__file__).resolve().parents[2]
-        results_dir = project_root / "results"
-
-    tables_dir = results_dir / "tables"
-    figures_dir = results_dir / "figures"
-    tables_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
     plots = plot_dbscan_metrics(all_results)
-    all_results.to_csv(tables_dir / "dbscan_metrics.csv", index=False)
-    plots.silhouette_fig.savefig(figures_dir / "dbscan_silhouette.png")
-    plots.noise_fig.savefig(figures_dir / "dbscan_noise.png")
+    _save_table(all_results, tables_dir, "dbscan_metrics.csv")
+    _save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
+    _save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
 
     selected_result = evaluate_dbscan_model(
         x=x,
@@ -428,9 +453,10 @@ def export_dbscan_results(
         minpts=5,
         distance=distance,
     )
-    selected_result.to_csv(
-        tables_dir / "dbscan_selected_configuration.csv",
-        index=False,
+    _save_table(
+        selected_result,
+        tables_dir,
+        "dbscan_selected_configuration.csv",
     )
     selected_labels = json.loads(selected_result.iloc[0]["labels"])
     selected_clusters_fig = plot_cluster_assignments(
@@ -438,9 +464,120 @@ def export_dbscan_results(
         selected_labels,
         "DBSCAN: agrupamento selecionado",
     )
-    selected_clusters_fig.savefig(figures_dir / "dbscan_clusters.png")
+    _save_figure(
+        selected_clusters_fig,
+        figures_dir / "dbscan_clusters.png",
+    )
 
     return all_results
+
+
+def evaluate_tsne_model(
+    x: pd.DataFrame,
+    y: pd.Series,
+    perplexity: float = 30.0,
+    max_iter: int = 1000,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    model, embedding = _fit_tsne(
+        x=x,
+        perplexity=perplexity,
+        max_iter=max_iter,
+        random_state=random_state,
+    )
+
+    # A silhueta usa os rótulos reais para medir a separabilidade no embedding.
+    return pd.DataFrame(
+        [
+            {
+                "model_name": tsne.TSNE.__name__,
+                "perplexity": perplexity,
+                "max_iter": max_iter,
+                "random_state": random_state,
+                "silhouette": metrics.calcular_silhueta(embedding, y),
+                "kl_divergence": model.kl_divergence_,
+                "n_iter": model.n_iter_,
+            }
+        ]
+    )
+
+
+def _fit_tsne(
+    x: pd.DataFrame,
+    perplexity: float,
+    max_iter: int,
+    random_state: int,
+) -> tuple[tsne.TSNE, np.ndarray]:
+    model = tsne.TSNE.create(
+        perplexity=perplexity,
+        max_iter=max_iter,
+        random_state=random_state,
+    )
+    return model, model.fit_predict(x)
+
+
+def export_tsne_results(
+    x: pd.DataFrame,
+    y: pd.Series,
+    perplexity_values: list[float] | None = None,
+    max_iter: int = 1000,
+    random_state: int = 42,
+    results_dir: Path | None = None,
+) -> pd.DataFrame:
+    perplexity_values = [30.0] if perplexity_values is None else perplexity_values
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
+    result_rows = []
+
+    embeddings = {}
+    for perplexity in perplexity_values:
+        model, embedding = _fit_tsne(
+            x=x,
+            perplexity=perplexity,
+            max_iter=max_iter,
+            random_state=random_state,
+        )
+        embeddings[perplexity] = embedding
+        result_rows.append(
+            {
+                "model_name": tsne.TSNE.__name__,
+                "perplexity": perplexity,
+                "max_iter": max_iter,
+                "random_state": random_state,
+                # Compara a separação dos rótulos conhecidos no embedding.
+                "silhouette": metrics.calcular_silhueta(embedding, y),
+                "kl_divergence": model.kl_divergence_,
+                "n_iter": model.n_iter_,
+            }
+        )
+
+    results = pd.DataFrame(result_rows)
+    _save_table(results, tables_dir, "tsne_metrics.csv")
+
+    embeddings_figure = plot_tsne_embeddings_comparison(embeddings, y)
+    _save_figure(
+        embeddings_figure,
+        figures_dir / "tsne_embeddings_perplexities.png",
+    )
+
+    perplexity_figure = plot_tsne_perplexity_comparison(results)
+    _save_figure(
+        perplexity_figure,
+        figures_dir / "tsne_perplexity_comparison.png",
+    )
+
+    best_result = _select_best_row(results, metric="silhouette")
+    embedding = embeddings[float(best_result["perplexity"])]
+    figure = plot_tsne_embedding(
+        embedding,
+        y,
+        title=(
+            "Visualização do Iris utilizando t-SNE "
+            f"(perplexidade={best_result['perplexity']})"
+        ),
+    )
+    _save_figure(figure, figures_dir / "tsne_embedding.png")
+
+    return results
 
 
 def comparar_algoritmos_por_silhueta(
@@ -449,8 +586,7 @@ def comparar_algoritmos_por_silhueta(
     """Compara cada algoritmo pela configuração de maior silhueta."""
     comparacao = []
     for nome, resultados_modelo in resultados.items():
-        validos = resultados_modelo.dropna(subset=["silhouette"])
-        melhor = validos.loc[validos["silhouette"].idxmax()]
+        melhor = _select_best_row(resultados_modelo, metric="silhouette")
         comparacao.append(
             {
                 "algorithm": nome,
@@ -466,10 +602,14 @@ def comparar_algoritmos_por_silhueta(
             }
         )
 
-    return pd.DataFrame(comparacao).sort_values(
-        "silhouette",
-        ascending=False,
-    ).reset_index(drop=True)
+    return (
+        pd.DataFrame(comparacao)
+        .sort_values(
+            "silhouette",
+            ascending=False,
+        )
+        .reset_index(drop=True)
+    )
 
 
 def export_comparacao_algoritmos(
@@ -477,13 +617,8 @@ def export_comparacao_algoritmos(
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
     """Exporta a comparação dos algoritmos para uma tabela CSV."""
-    if results_dir is None:
-        project_root = Path(__file__).resolve().parents[2]
-        results_dir = project_root / "results"
-
-    tables_dir = Path(results_dir) / "tables"
-    tables_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir, _ = _prepare_results_directories(results_dir)
 
     comparacao = comparar_algoritmos_por_silhueta(resultados)
-    comparacao.to_csv(tables_dir / "algorithm_comparison.csv", index=False)
+    _save_table(comparacao, tables_dir, "algorithm_comparison.csv")
     return comparacao
