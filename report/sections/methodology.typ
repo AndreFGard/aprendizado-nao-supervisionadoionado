@@ -35,7 +35,11 @@
 
   Foram avaliados valores de $k$ entre 2 e 5. Para cada valor de $k$, o modelo foi executado dez vezes, utilizando sementes distintas, totalizando 40 execuções. Em cada execução, foram registrados o Silhouette Score, calculado com a distância city-block, o ARI e a inércia. A inércia corresponde à soma das distâncias das observações aos medóides atribuídos. Para cada valor de $k$, foi selecionada a execução de menor inércia. A configuração utilizada na visualização do agrupamento foi selecionada, entre todas as execuções válidas, pelo maior Silhouette Score. Os resultados também foram organizados em gráficos que relacionam $k$ à silhueta e à inércia.
 
-  == Agrupamento hierárquico Centroid Linkage (UPGMC)
+  == Agrupamento hierárquico Centroid Linkage
+
+  O agrupamento hierárquico aglomerativo inicia com cada observação em um agrupamento separado e une progressivamente os agrupamentos até formar uma estrutura hierárquica. No método Centroid Linkage, também denominado UPGMC, a distância entre dois agrupamentos é calculada entre seus centróides. Essa sequência de fusões é representada por um dendrograma.
+
+  Neste trabalho, o algoritmo foi implementado pela classe `HierarchicalCentroid`, utilizando a função `linkage` da biblioteca SciPy com o método centroid e distância euclidiana. A matriz de ligação foi construída sobre os atributos originais e cortada posteriormente para obter partições com diferentes valores de $k$. Foram avaliados valores de $k$ entre 2 e 5. Para cada valor, a partição foi obtida por meio da função `cut_tree` e o procedimento foi registrado dez vezes, totalizando 40 registros. Em cada configuração, foram calculados o Silhouette Score, utilizando a distância euclidiana, e o ARI em relação às espécies reais. Também foi gerado um dendrograma a partir da matriz de ligação para representar a estrutura hierárquica completa.
 
   = Técnicas de redução de dimensionalidade
 ]
