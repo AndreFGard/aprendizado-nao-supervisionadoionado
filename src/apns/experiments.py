@@ -7,12 +7,15 @@ import pandas as pd
 from matplotlib.figure import Figure
 
 from apns import metrics
-from apns.models import dbscan
-from apns.models import hierarchical
-from apns.models import kernel_fuzzy_kmeans
-from apns.models import kmedoids
-from apns.models import tsne
-from apns.models import treinable_model
+from apns.models import (
+    dbscan,
+    hierarchical,
+    kernel_fuzzy_kmeans,
+    kmedoids,
+    treinable_model,
+    tsne,
+    umap,
+)
 from apns.visualization import (
     plot_cluster_assignments,
     plot_dbscan_metrics,
@@ -24,6 +27,9 @@ from apns.visualization import (
     plot_tsne_embedding,
     plot_tsne_embeddings_comparison,
     plot_tsne_perplexity_comparison,
+    plot_umap_embedding,
+    plot_umap_embeddings_comparison,
+    plot_umap_parameter_comparison,
 )
 
 
@@ -576,6 +582,113 @@ def export_tsne_results(
         ),
     )
     _save_figure(figure, figures_dir / "tsne_embedding.png")
+
+    return results
+
+
+def evaluate_umap_model(
+    x: pd.DataFrame,
+    y: pd.Series,
+    n_neighbors: int = 15,
+    min_dist: float = 0.1,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    model, embedding = _fit_umap(
+        x=x,
+        n_neighbors=n_neighbors,
+        min_dist=min_dist,
+        random_state=random_state,
+    )
+    return pd.DataFrame(
+        [
+            {
+                "model_name": umap.UMAP.__name__,
+                "n_neighbors": n_neighbors,
+                "min_dist": min_dist,
+                "random_state": random_state,
+                "silhouette": metrics.calcular_silhueta(embedding, y),
+            }
+        ]
+    )
+
+
+def _fit_umap(
+    x: pd.DataFrame,
+    n_neighbors: int,
+    min_dist: float,
+    random_state: int,
+) -> tuple[umap.UMAP, np.ndarray]:
+    model = umap.UMAP.create(
+        n_neighbors=n_neighbors,
+        min_dist=min_dist,
+        random_state=random_state,
+    )
+    return model, model.fit_predict(x)
+
+
+def export_umap_results(
+    x: pd.DataFrame,
+    y: pd.Series,
+    n_neighbors_values: list[int] | None = None,
+    min_dist_values: list[float] | None = None,
+    random_state: int = 42,
+    results_dir: Path | None = None,
+) -> pd.DataFrame:
+    n_neighbors_values = [15] if n_neighbors_values is None else n_neighbors_values
+    min_dist_values = [0.1] if min_dist_values is None else min_dist_values
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
+    result_rows = []
+    embeddings = {}
+
+    for n_neighbors in n_neighbors_values:
+        for min_dist in min_dist_values:
+            model, embedding = _fit_umap(
+                x=x,
+                n_neighbors=n_neighbors,
+                min_dist=min_dist,
+                random_state=random_state,
+            )
+            parameter = (n_neighbors, min_dist)
+            embeddings[parameter] = embedding
+            result_rows.append(
+                {
+                    "model_name": umap.UMAP.__name__,
+                    "n_neighbors": n_neighbors,
+                    "min_dist": min_dist,
+                    "random_state": random_state,
+                    "silhouette": metrics.calcular_silhueta(embedding, y),
+                }
+            )
+
+    results = pd.DataFrame(result_rows)
+    _save_table(results, tables_dir, "umap_metrics.csv")
+
+    embeddings_figure = plot_umap_embeddings_comparison(embeddings, y)
+    _save_figure(
+        embeddings_figure,
+        figures_dir / "umap_embeddings_parameters.png",
+    )
+
+    parameter_figure = plot_umap_parameter_comparison(results)
+    _save_figure(
+        parameter_figure,
+        figures_dir / "umap_parameter_comparison.png",
+    )
+
+    best_result = _select_best_row(results, metric="silhouette")
+    embedding = embeddings[
+        (int(best_result["n_neighbors"]), float(best_result["min_dist"]))
+    ]
+    figure = plot_umap_embedding(
+        embedding,
+        y,
+        title=(
+            "Visualização do Iris utilizando UMAP "
+            f"(n_neighbors={int(best_result['n_neighbors'])}, "
+            f"min_dist={best_result['min_dist']:g})"
+        ),
+    )
+    _save_figure(figure, figures_dir / "umap_embedding.png")
 
     return results
 
