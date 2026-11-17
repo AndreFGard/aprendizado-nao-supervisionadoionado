@@ -27,6 +27,8 @@ class UMAP(treinable_model.ITransductiveModel):
                 min_dist=min_dist,
                 metric=metric,
                 random_state=random_state,
+                n_jobs=1,
+                compatibility_layout=True,
             )
         )
 

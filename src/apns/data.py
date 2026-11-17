@@ -7,7 +7,7 @@ def carregar_iris(dataset_path: str | Path | None = None):
     """Carrega e valida a base Iris padrão."""
 
     if dataset_path is None:
-        dataset_path = Path(__file__).resolve().parents[1] / "data" / "iris.data.csv"
+        dataset_path = Path(__file__).resolve().parents[2] / "data" / "iris.data.csv"
 
     iris = pd.read_csv(
         dataset_path,

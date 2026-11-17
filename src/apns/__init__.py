@@ -1,13 +1,14 @@
+from apns.data import carregar_iris
 from apns.experiments import (
-    export_dbscan_results,
     export_comparacao_algoritmos,
+    export_dbscan_results,
     export_hierarchical_results,
     export_kernel_fuzzy_kmeans_results,
     export_kmedoids_results,
     export_tsne_results,
+    export_umap_results,
     test_kmedoids_model,
 )
-from apns.data import carregar_iris
 
 
 def main() -> None:
@@ -79,7 +80,7 @@ def main() -> None:
     print("\nComparação dos algoritmos:")
     print(comparison)
 
-    print("\n--- Executando os algoritmos de redução de dimensionalidade t-SNE ---")
+    print("\n--- Executando os algoritmos de redução de dimensionalidade t-SNE e UMAP ---")
 
     export_tsne_results(
         x=X,
@@ -87,6 +88,14 @@ def main() -> None:
         perplexity_values=[5.0, 10.0, 20.0, 30.0],
     )
     print("\nResultados e gráfico do t-SNE exportados.")
+
+    export_umap_results(
+        x=X,
+        y=y,
+        n_neighbors_values=[5, 10, 15, 30],
+        min_dist_values=[0.0, 0.1, 0.5],
+    )
+    print("\nResultados e gráficos do UMAP exportados.")
 
 
 if __name__ == "__main__":

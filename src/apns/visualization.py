@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import plotly
 import plotly.express as px
-from scipy.cluster.hierarchy import dendrogram
 from matplotlib.figure import Figure
+from scipy.cluster.hierarchy import dendrogram
 
 px.defaults.height = 480  # pyright: ignore[reportAttributeAccessIssue]
 px.defaults.width = 640  # pyright: ignore[reportAttributeAccessIssue]
@@ -188,6 +188,91 @@ def plot_tsne_perplexity_comparison(df_metrics: pd.DataFrame) -> Figure:
     axes[1].grid(alpha=0.2)
 
     figure.suptitle("t-SNE: comparação de perplexidades")
+    figure.tight_layout()
+    return figure
+
+
+def plot_umap_embedding(
+    embedding: np.ndarray,
+    labels: pd.Series,
+    title: str = "Visualização do Iris utilizando UMAP",
+) -> Figure:
+    figure, axis = plt.subplots(figsize=(9, 6))
+    labels_array = labels.to_numpy()
+
+    for label in pd.unique(labels_array):
+        mask = labels_array == label
+        axis.scatter(
+            embedding[mask, 0],
+            embedding[mask, 1],
+            label=str(label),
+            alpha=0.8,
+        )
+
+    axis.set_title(title)
+    axis.set_xlabel("Componente UMAP 1")
+    axis.set_ylabel("Componente UMAP 2")
+    axis.legend()
+    axis.grid(alpha=0.2)
+    figure.tight_layout()
+    return figure
+
+
+def plot_umap_embeddings_comparison(
+    embeddings: dict[tuple[int, float], np.ndarray],
+    labels: pd.Series,
+) -> Figure:
+    parameters = sorted(embeddings)
+    n_columns = min(2, len(parameters))
+    n_rows = (len(parameters) + n_columns - 1) // n_columns
+    figure, axes = plt.subplots(
+        n_rows,
+        n_columns,
+        figsize=(6 * n_columns, 5 * n_rows),
+        squeeze=False,
+    )
+    labels_array = labels.to_numpy()
+
+    for axis, (n_neighbors, min_dist) in zip(axes.flat, parameters):
+        embedding = embeddings[(n_neighbors, min_dist)]
+        for label in pd.unique(labels_array):
+            mask = labels_array == label
+            axis.scatter(
+                embedding[mask, 0],
+                embedding[mask, 1],
+                label=str(label),
+                alpha=0.8,
+            )
+        axis.set_title(f"n_neighbors={n_neighbors}, min_dist={min_dist:g}")
+        axis.set_xlabel("Componente UMAP 1")
+        axis.set_ylabel("Componente UMAP 2")
+        axis.grid(alpha=0.2)
+
+    for axis in axes.flat[len(parameters) :]:
+        axis.set_visible(False)
+
+    handles, legend_labels = axes.flat[0].get_legend_handles_labels()
+    figure.legend(handles, legend_labels, loc="lower center", ncol=2)
+    figure.suptitle("UMAP: comparação dos embeddings por parâmetros")
+    figure.tight_layout(rect=(0, 0.05, 1, 0.95))
+    return figure
+
+
+def plot_umap_parameter_comparison(df_metrics: pd.DataFrame) -> Figure:
+    figure, axis = plt.subplots(figsize=(9, 5))
+    for min_dist, group in df_metrics.groupby("min_dist"):
+        ordered_metrics = group.sort_values("n_neighbors")
+        axis.plot(
+            ordered_metrics["n_neighbors"],
+            ordered_metrics["silhouette"],
+            marker="o",
+            label=f"min_dist={min_dist:g}",
+        )
+    axis.set_xlabel("Número de vizinhos (n_neighbors)")
+    axis.set_ylabel("Silhueta")
+    axis.set_title("UMAP: silhueta por parâmetros")
+    axis.grid(alpha=0.2)
+    axis.legend()
     figure.tight_layout()
     return figure
 
