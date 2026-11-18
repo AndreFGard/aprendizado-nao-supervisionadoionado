@@ -23,6 +23,7 @@ class KMeansLikeMetrics:
 class DBSCANMetrics:
     silhouette_fig: Figure
     noise_fig: Figure
+    coverage_fig: Figure
     metrics: pd.DataFrame
 
 
@@ -96,6 +97,8 @@ def plot_cluster_assignments(
             if cluster_names is not None
             else f"Cluster {cluster}"
         )
+        if cluster_names is None and cluster == -1:
+            cluster_name = "Ruído"
         axis.scatter(
             x.loc[cluster_points, x_column],
             x.loc[cluster_points, y_column],
@@ -448,8 +451,64 @@ def plot_dbscan_metrics(
     noise_axis.legend()
     noise_fig.tight_layout()
 
+    coverage_fig, coverage_axis = plt.subplots(figsize=(8, 5))
+    for minpts, group in df_metrics.groupby("minpts"):
+        group = group.sort_values("eps")
+        coverage_axis.plot(
+            group["eps"],
+            group["cobertura"],
+            marker="o",
+            label=f"min_samples={minpts}",
+        )
+    coverage_axis.set_xlabel("eps")
+    coverage_axis.set_ylabel("Cobertura (%)")
+    coverage_axis.set_title(f"{model_name}: Cobertura por eps")
+    coverage_axis.set_ylim(0, 100)
+    coverage_axis.grid()
+    coverage_axis.legend()
+    coverage_fig.tight_layout()
+
     return DBSCANMetrics(
         silhouette_fig=silhouette_fig,
         noise_fig=noise_fig,
+        coverage_fig=coverage_fig,
         metrics=df_metrics,
     )
+
+
+def plot_dbscan_eps_comparison(
+    x: pd.DataFrame,
+    eps_values: tuple[float, ...],
+    minpts: int,
+    model_factory,
+) -> Figure:
+    figure, axes = plt.subplots(
+        1,
+        len(eps_values),
+        figsize=(6 * len(eps_values), 5),
+        squeeze=False,
+    )
+
+    for axis, eps in zip(axes.flat, eps_values):
+        model = model_factory(eps=eps, minpts=minpts)
+        labels = model.fit_predict(x)
+        for cluster in np.unique(labels):
+            cluster_points = labels == cluster
+            name = "Ruído" if cluster == -1 else f"Cluster {cluster}"
+            axis.scatter(
+                x.loc[cluster_points, "petal_length"],
+                x.loc[cluster_points, "petal_width"],
+                c=[plt.get_cmap("tab10")(cluster % 10)],
+                edgecolors="black",
+                linewidths=0.3,
+                label=name,
+            )
+        axis.set_xlabel("Petal Length")
+        axis.set_ylabel("Petal Width")
+        axis.set_title(f"eps = {eps:g}, minpts = {minpts}")
+        axis.legend(title="Grupos")
+        axis.grid(alpha=0.2)
+
+    figure.suptitle("DBSCAN: comparação entre valores de eps")
+    figure.tight_layout()
+    return figure

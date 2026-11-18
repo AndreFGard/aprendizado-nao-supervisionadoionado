@@ -18,6 +18,7 @@ from apns.models import (
 )
 from apns.visualization import (
     plot_cluster_assignments,
+    plot_dbscan_eps_comparison,
     plot_dbscan_metrics,
     plot_hierarchical_dendrogram,
     plot_kmedoids_inertia,
@@ -553,6 +554,7 @@ def evaluate_dbscan_model(
                 "distance": distance,
                 "n_clusters": n_clusters,
                 "n_ruido": n_ruido,
+                "cobertura": 100 * (len(clusters) - n_ruido) / len(clusters),
                 "silhouette": silhouete,
                 "ari": metrics.calcular_ari(
                     y.loc[pontos_validos],
@@ -591,12 +593,26 @@ def export_dbscan_results(
     _save_table(all_results, tables_dir, "dbscan_metrics.csv")
     _save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
     _save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
+    _save_figure(plots.coverage_fig, figures_dir / "dbscan_coverage.png")
 
+    eligible = all_results[
+        all_results["n_ruido"].le(10)
+        & all_results["silhouette"].notna()
+    ]
+    if eligible.empty:
+        raise ValueError(
+            "Nenhuma configuração do DBSCAN possui silhueta válida "
+            "com no máximo 10 observações de ruído"
+        )
+    selected_row = eligible.sort_values(
+        ["silhouette", "eps", "minpts"],
+        ascending=[False, True, True],
+    ).iloc[0]
     selected_result = evaluate_dbscan_model(
         x=x,
         y=y,
-        eps=0.6,
-        minpts=5,
+        eps=float(selected_row["eps"]),
+        minpts=int(selected_row["minpts"]),
         distance=distance,
     )
     _save_table(
@@ -613,6 +629,42 @@ def export_dbscan_results(
     _save_figure(
         selected_clusters_fig,
         figures_dir / "dbscan_clusters.png",
+    )
+
+    petal_model = dbscan.DBSCAN.create(
+        eps=0.4,
+        minpts=3,
+        distance=distance,
+    )
+    petal_labels = petal_model.fit_predict(x)
+    petal_clusters_fig = plot_cluster_assignments(
+        x,
+        petal_labels,
+        "DBSCAN: eps = 0,4 e minpts = 3",
+        x_column="petal_length",
+        y_column="petal_width",
+    )
+    _save_figure(
+        petal_clusters_fig,
+        figures_dir / "dbscan_eps04_minpts3_petals.png",
+    )
+
+    def dbscan_factory(*, eps: float, minpts: int):
+        return dbscan.DBSCAN.create(
+            eps=eps,
+            minpts=minpts,
+            distance=distance,
+        )
+
+    eps_comparison_fig = plot_dbscan_eps_comparison(
+        x=x,
+        eps_values=(0.4, 1.0),
+        minpts=5,
+        model_factory=dbscan_factory,
+    )
+    _save_figure(
+        eps_comparison_fig,
+        figures_dir / "dbscan_eps04_eps10_comparison.png",
     )
 
     return all_results
