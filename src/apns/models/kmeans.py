@@ -8,11 +8,13 @@ from apns.models import treinable_model
 
 
 class KMeans(treinable_model.ITreinableModel):
+    objective_name = "inertia (SSE)"
+
     def __init__(self, model: sklearn.cluster.KMeans):
         self._model = model
 
     @classmethod
-    def create(cls, n_clusters: int, random_state: int) -> Self:
+    def create(cls, n_clusters: int, random_state: int = 42) -> Self:
         return cls(
             sklearn.cluster.KMeans(
                 n_clusters=n_clusters,
@@ -28,3 +30,11 @@ class KMeans(treinable_model.ITreinableModel):
 
     def predict(self, x: pd.DataFrame | np.ndarray) -> np.ndarray:
         return self._model.predict(x)
+
+    def compute_objective(self, x: pd.DataFrame | np.ndarray) -> float:
+        """Squared distance to centroids"""
+        return float(self._model.inertia_)
+
+    @property
+    def n_iter(self) -> int:
+        return int(self._model.n_iter_)

@@ -2,7 +2,6 @@ from typing import Self
 
 import numpy as np
 import pandas as pd
-
 from scipy.cluster.hierarchy import cut_tree, linkage
 
 from apns.models import treinable_model

@@ -1,3 +1,8 @@
+import dataclasses
+
+import pandas as pd
+
+from apns import experiments
 from apns.data import carregar_iris
 from apns.experiments import (
     export_comparacao_algoritmos,
@@ -9,6 +14,47 @@ from apns.experiments import (
     export_umap_results,
     test_kmedoids_model,
 )
+from apns.models import treinable_model
+from apns.models.gaussian_mixture import GaussianMixture
+from apns.models.kmeans import KMeans
+from apns.models.kmeans_fuzzy import KMeansFuzzy
+
+
+@dataclasses.dataclass
+class KMeansLikeConfig:
+    cls: type[treinable_model.IPredictiveModel]
+    prefix: str
+    pretty_name: str
+
+
+kmeans_like_configs = [
+    KMeansLikeConfig(KMeans, "kmeans", "K-Means"),
+    KMeansLikeConfig(KMeansFuzzy, "fuzzy_kmeans", "Fuzzy K-Means"),
+    KMeansLikeConfig(GaussianMixture, "em", "EM"),
+]
+
+
+def compute_mine(configs: list[KMeansLikeConfig]) -> dict[str, pd.DataFrame]:
+    x, y = carregar_iris()
+
+    best_by_model: dict[str, pd.DataFrame] = {}
+    for config in configs:
+        rows = experiments.evaluate_kmeanslike_model(x, y, config.cls)
+        _, best = experiments.export_kmeanslike_model(
+            rows=rows,
+            prefix=config.prefix,
+            name=config.pretty_name,
+        )
+        best_by_model[config.pretty_name] = best
+
+        # k1 with silhouette = nan is kept so its plotted.
+        chosen = best.loc[best["silhouette"].idxmax()]
+        print(
+            f"{config.pretty_name}: k*={int(chosen['k'])}, "
+            f"silhueta={chosen['silhouette']:.4f}, ARI={chosen['ari']:.4f}"
+        )
+
+    return best_by_model
 
 
 def main() -> None:
@@ -18,6 +64,9 @@ def main() -> None:
     print("Quantidade de rótulos:", len(y))
     print("\nDistribuição das espécies:")
     print(y.value_counts().sort_index())
+
+    print("\n--- Executando K-Means, Fuzzy K-Means e Misturas Gaussianas (EM) ---")
+    kmeans_like_results = compute_mine(configs=kmeans_like_configs)
 
     print(
         "\n--- Executando os algoritmos de agrupamento DBSCAN, K-Medoids, UPGMC, Kernel Fuzzy K-Means ---"
@@ -71,6 +120,7 @@ def main() -> None:
 
     comparison = export_comparacao_algoritmos(
         {
+            **kmeans_like_results,
             "DBSCAN": dbscan_results,
             "K-Medoids": kmedoids_results,
             "Hierárquico": hierarchical_results,
@@ -80,7 +130,9 @@ def main() -> None:
     print("\nComparação dos algoritmos:")
     print(comparison)
 
-    print("\n--- Executando os algoritmos de redução de dimensionalidade t-SNE e UMAP ---")
+    print(
+        "\n--- Executando os algoritmos de redução de dimensionalidade t-SNE e UMAP ---"
+    )
 
     export_tsne_results(
         x=X,

@@ -59,6 +59,19 @@ def plot_kmedoids_silhouette(df_resultados: pd.DataFrame) -> Figure:
     return figure
 
 
+def plot_silhouette_by_k(best_by_k: pd.DataFrame, model_name: str) -> Figure:
+    ordered = best_by_k.dropna(subset=["silhouette"]).sort_values("k")
+    figure, axis = plt.subplots(figsize=(8, 5))
+    axis.plot(ordered["k"], ordered["silhouette"], marker="o")
+    axis.set_xlabel("Número de clusters (k)")
+    axis.set_ylabel("Silhouette")
+    axis.set_title(f"{model_name}: Silhouette × k")
+    axis.set_xticks(range(1, int(best_by_k["k"].max()) + 1))
+    axis.grid()
+    figure.tight_layout()
+    return figure
+
+
 def plot_kmedoids_inertia(df_resultados: pd.DataFrame) -> Figure:
     figure, axis = plt.subplots(figsize=(8, 5))
     axis.plot(
