@@ -213,6 +213,83 @@ def export_kernel_fuzzy_kmeans_results(
         figures_dir / "kernel_fuzzy_kmeans_memberships.png",
     )
 
+    k3_ari_result = (
+        results.loc[results["k"] == 3]
+        .sort_values("ari", ascending=False)
+        .iloc[0]
+    )
+    k3_sigma2 = k3_ari_result["sigma2"]
+    if pd.isna(k3_sigma2):
+        k3_sigma2 = None
+    k3_model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
+        n_clusters=3,
+        random_state=int(k3_ari_result["iter"]),
+        m=float(k3_ari_result["m"]),
+        sigma2=k3_sigma2,
+        n_init=n_init,
+        max_iter=model_max_iter,
+        tol=tol,
+    )
+    k3_model.fit(x)
+
+    cluster_species = (
+        pd.DataFrame({"cluster": k3_model.labels_, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    k3_cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
+
+    k3_clusters_fig = plot_cluster_assignments(
+        x,
+        k3_model.labels_,
+        "Kernel Fuzzy K-Means (k = 3): melhor ARI",
+        x_column="petal_length",
+        y_column="petal_width",
+        cluster_names=k3_cluster_names,
+    )
+    _save_figure(
+        k3_clusters_fig,
+        figures_dir / "kernel_fuzzy_kmeans_k3_ari_clusters.png",
+    )
+
+    k3_membership_fig = plot_membership_degrees(
+        k3_model.membership_,
+        cluster_names=k3_cluster_names,
+        title="Kernel Fuzzy K-Means (k = 3): graus de pertinência",
+    )
+    _save_figure(
+        k3_membership_fig,
+        figures_dir / "kernel_fuzzy_kmeans_k3_ari_memberships.png",
+    )
+
+    contingency = (
+        pd.crosstab(
+            pd.Series(y.to_numpy(), name="species"),
+            pd.Series(k3_model.labels_, name="cluster"),
+        )
+        .rename(index=species_names)
+        .rename(columns=k3_cluster_names)
+    )
+    contingency.to_csv(tables_dir / "kernel_fuzzy_kmeans_k3_ari_contingency.csv")
+
+    membership_table = pd.DataFrame(
+        k3_model.membership_,
+        columns=[k3_cluster_names[cluster] for cluster in range(3)],
+    )
+    membership_table.insert(0, "sample", range(len(membership_table)))
+    membership_table.to_csv(
+        tables_dir / "kernel_fuzzy_kmeans_k3_ari_membership.csv",
+        index=False,
+    )
+
     objective_fig = plot_objective_convergence(model.objective_history_)
     _save_figure(
         objective_fig,

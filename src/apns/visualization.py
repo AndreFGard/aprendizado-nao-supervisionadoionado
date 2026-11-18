@@ -306,13 +306,23 @@ def plot_umap_parameter_comparison(df_metrics: pd.DataFrame) -> Figure:
     return figure
 
 
-def plot_membership_degrees(membership: np.ndarray) -> Figure:
+def plot_membership_degrees(
+    membership: np.ndarray,
+    cluster_names: dict[int, str] | None = None,
+    title: str = "Kernel Fuzzy K-Means: graus de pertinência",
+) -> Figure:
     figure, axis = plt.subplots(figsize=(10, 5))
     image = axis.imshow(membership.T, aspect="auto", cmap="viridis", vmin=0, vmax=1)
     axis.set_xlabel("Amostra")
-    axis.set_ylabel("Cluster")
-    axis.set_title("Kernel Fuzzy K-Means: graus de pertinência")
-    axis.set_yticks(range(membership.shape[1]))
+    axis.set_ylabel("Grupo")
+    axis.set_title(title)
+    if cluster_names is None:
+        axis.set_yticks(range(membership.shape[1]))
+    else:
+        axis.set_yticks(
+            range(membership.shape[1]),
+            [cluster_names.get(cluster, f"Cluster {cluster}") for cluster in range(membership.shape[1])],
+        )
     figure.colorbar(image, ax=axis, label="Pertinência")
     figure.tight_layout()
     return figure
