@@ -133,6 +133,48 @@
   == Misturas gaussianas com EM
 
   == Agrupamento hierárquico Centroid Linkage
+
+  Por ser determinístico, o procedimento produziu métricas idênticas nas dez repetições de cada valor de $k$, e os resultados correspondem, portanto, a quatro partições distintas, uma para cada $k in {2, 3, 4, 5}$. A @tab:hier resume a silhueta (distância euclidiana) e o ARI de cada partição.
+
+  #figure(
+    table(
+      columns: 4,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*$k$*], [*Grupos*], [*Silhouette*], [*ARI*]),
+      table.hline(),
+      [2], [2], [0,686], [0,568],
+      [3], [3], [0,554], [0,759],
+      [4], [4], [0,472], [0,729],
+      [5], [5], [0,382], [0,718],
+      table.hline(),
+    ),
+    caption: [Centroid Linkage (distância euclidiana).],
+    kind: table,
+  ) <tab:hier>
+
+  A @fig:hier-dend apresenta o dendrograma truncado. As últimas fusões evidenciam dois grandes ramos: o ramo da _setosa_, com 50 observações, e o ramo que reúne _versicolor_ e _virginica_. Dentro desse segundo ramo, as fusões são mais graduais e não indicam uma separação clara entre as duas espécies, o que torna a divisão em três grupos menos evidente do que a divisão em dois.
+
+  #figure(
+    image("../imagens/hierarchical_dendrogram.png", width: 100%),
+    caption: [Dendrograma truncado do agrupamento hierárquico (Centroid Linkage, distância euclidiana), com linha de corte para a partição em $k = 3$.],
+  ) <fig:hier-dend>
+
+  Para $k = 2$, a partição separa a _setosa_ (50 observações) das demais espécies (100 observações), com silhueta de 0,686 e ARI de 0,568. A silhueta elevada reflete a separação da _setosa_; o ARI é moderado porque _versicolor_ e _virginica_ permanecem juntas.
+
+  Para $k = 3$, a _setosa_ permanece isolada e as demais observações são divididas em grupos de 64 e 36 observações. O grupo de 64 reúne as 50 _versicolor_ e 14 _virginica_, enquanto o de 36 contém apenas _virginica_. Assim, 14 das 150 observações (9,3%) ficam fora do agrupamento majoritário de sua espécie. A silhueta cai para 0,554 e o ARI sobe para 0,759, o maior valor entre as partições avaliadas.
+
+  #figure(
+    image("../imagens/hierarchical_k3_petal_clusters.png", width: 82%),
+    caption: [Centroid Linkage com $k = 3$, projetado em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo.],
+  ) <fig:hier-k3-clusters>
+
+  Como o Centroid Linkage não é monotônico, o `cut_tree` pode retornar menos rótulos que o $k$ solicitado. Por isso, as partições desta análise foram reconstruídas a partir das primeiras $n-k$ fusões, garantindo exatamente $k$ grupos.
+
+  Para $k = 4$, a silhueta é 0,472 e o ARI é 0,729. Para $k = 5$, são obtidos 0,382 e 0,718, respectivamente. As subdivisões ocorrem principalmente na região de _versicolor_ e _virginica_, e ambas as partições são efetivamente diferentes da configuração com $k = 3$.
+
+  Considerando as partições efetivamente distintas, a silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,686), enquanto o ARI é máximo em $k = 3$ (0,759). A silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI reconhece $k = 3$ como a configuração mais compatível com as espécies, ainda que _versicolor_ e _virginica_ não sejam totalmente separadas. Por fim, como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada, e os atributos foram usados sem normalização, o que pode influenciar as distâncias entre centróides e, portanto, a hierarquia obtida.
   
   == DBSCAN
 
