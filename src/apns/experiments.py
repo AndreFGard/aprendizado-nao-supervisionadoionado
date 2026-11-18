@@ -762,6 +762,11 @@ def evaluate_tsne_model(
                 "silhouette": metrics.calcular_silhueta(embedding, y),
                 "kl_divergence": model.kl_divergence_,
                 "n_iter": model.n_iter_,
+                "trustworthiness": metrics.calcular_trustworthiness(
+                    x,
+                    embedding,
+                    n_neighbors=10,
+                ),
             }
         ]
     )
@@ -788,8 +793,11 @@ def export_tsne_results(
     max_iter: int = 1000,
     random_state: int = 42,
     results_dir: Path | None = None,
+    seed_values: list[int] | None = None,
+    trustworthiness_n_neighbors: int = 10,
 ) -> pd.DataFrame:
     perplexity_values = [30.0] if perplexity_values is None else perplexity_values
+    seed_values = list(range(10)) if seed_values is None else seed_values
     tables_dir, figures_dir = _prepare_results_directories(results_dir)
     result_rows = []
 
@@ -812,11 +820,60 @@ def export_tsne_results(
                 "silhouette": metrics.calcular_silhueta(embedding, y),
                 "kl_divergence": model.kl_divergence_,
                 "n_iter": model.n_iter_,
+                "trustworthiness": metrics.calcular_trustworthiness(
+                    x,
+                    embedding,
+                    n_neighbors=trustworthiness_n_neighbors,
+                ),
             }
         )
 
     results = pd.DataFrame(result_rows)
     _save_table(results, tables_dir, "tsne_metrics.csv")
+
+    seed_rows = []
+    for seed in seed_values:
+        model, embedding = _fit_tsne(
+            x=x,
+            perplexity=30.0,
+            max_iter=max_iter,
+            random_state=seed,
+        )
+        seed_rows.append(
+            {
+                "model_name": tsne.TSNE.__name__,
+                "perplexity": 30.0,
+                "max_iter": max_iter,
+                "random_state": seed,
+                "silhouette": metrics.calcular_silhueta(embedding, y),
+                "kl_divergence": model.kl_divergence_,
+                "n_iter": model.n_iter_,
+                "trustworthiness": metrics.calcular_trustworthiness(
+                    x,
+                    embedding,
+                    n_neighbors=trustworthiness_n_neighbors,
+                ),
+            }
+        )
+
+    seed_results = pd.DataFrame(seed_rows)
+    _save_table(seed_results, tables_dir, "tsne_seed_results.csv")
+    seed_summary = pd.DataFrame(
+        [
+            {
+                "perplexity": 30.0,
+                "n_seeds": len(seed_results),
+                "n_neighbors_trustworthiness": trustworthiness_n_neighbors,
+                "silhouette_mean": seed_results["silhouette"].mean(),
+                "silhouette_std": seed_results["silhouette"].std(),
+                "kl_divergence_mean": seed_results["kl_divergence"].mean(),
+                "kl_divergence_std": seed_results["kl_divergence"].std(),
+                "trustworthiness_mean": seed_results["trustworthiness"].mean(),
+                "trustworthiness_std": seed_results["trustworthiness"].std(),
+            }
+        ]
+    )
+    _save_table(seed_summary, tables_dir, "tsne_seed_summary.csv")
 
     embeddings_figure = plot_tsne_embeddings_comparison(embeddings, y)
     _save_figure(
