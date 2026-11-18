@@ -266,6 +266,46 @@
 
   == t-SNE
 
+  Foram avaliadas as perplexidades 5, 10, 20 e 30, com inicialização por PCA, taxa de aprendizado automática, limite de 1000 iterações e semente 42. Todas as execuções registraram 999 iterações. A @tab:tsne resume a silhueta, calculada no espaço bidimensional com as espécies reais como rótulos, a divergência de Kullback-Leibler (KL) e a trustworthiness com dez vizinhos.
+
+  #figure(
+    table(
+      columns: 5,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*Perplexidade*], [*Silhouette*], [*Divergência KL*], [*Iterações*], [*Trustworthiness*]),
+      table.hline(),
+      [5], [0,558], [0,338], [999], [0,982],
+      [10], [0,610], [0,280], [999], [0,987],
+      [20], [0,629], [0,179], [999], [0,990],
+      [30], [0,632], [0,119], [999], [0,990],
+      table.hline(),
+    ),
+    caption: [t-SNE com as espécies reais.],
+    kind: table,
+  ) <tab:tsne>
+
+  A silhueta cresce com a perplexidade (@fig:tsne-comp), com ganhos decrescentes: 0,052 de 5 para 10, 0,019 de 10 para 20 e 0,003 de 20 para 30. A divergência KL diminui continuamente de 0,338 para 0,119, mas seus valores não são estritamente comparáveis entre perplexidades. Portanto, ela foi usada apenas como informação complementar, e a configuração foi selecionada pela silhueta.
+
+  Na análise de estabilidade da perplexidade 30, as sementes de 0 a 9 produziram silhueta média de 0,632 e trustworthiness média de 0,990, ambas sem desvio padrão amostral relevante. Esses resultados indicam estabilidade das métricas nesse conjunto de execuções, mas não avaliam a robustez em novas amostras ou configurações.
+
+  #figure(
+    image("../imagens/tsne_perplexity_comparison.png", width: 100%),
+    caption: [t-SNE: silhueta e divergência KL em função da perplexidade.],
+  ) <fig:tsne-comp>
+
+  Os embeddings da @fig:tsne-emb mostram o efeito da perplexidade sobre a estrutura obtida. Com perplexidade 5, a ênfase na vizinhança muito local fragmenta os dados: a _setosa_ aparece dividida em três subgrupos, e _versicolor_ também se divide em vários blocos, o que produz subestruturas que não correspondem a diferenças entre espécies. Com perplexidade 10, a _setosa_ forma um único grupo alongado, enquanto _versicolor_ e _virginica_ ocupam regiões distintas, mas com alguns pontos de _versicolor_ dentro da região de _virginica_. Com perplexidades 20 e 30, a _setosa_ forma um grupo compacto e bem afastado, e _versicolor_ e _virginica_ formam uma região contínua, com sobreposição parcial na fronteira entre elas.
+
+  #figure(
+    image("../imagens/tsne_embeddings_perplexities.png", width: 100%),
+    caption: [t-SNE: embeddings bidimensionais para as perplexidades 5, 10, 20 e 30, coloridos pela espécie real.],
+  ) <fig:tsne-emb>
+
+  A configuração selecionada foi a de perplexidade 30, com silhueta de 0,632 e divergência KL de 0,119. Nela, a _setosa_ está completamente isolada das demais espécies, enquanto _versicolor_ e _virginica_ formam uma faixa contínua com sobreposição parcial na fronteira. Esse resultado é consistente com os métodos de agrupamento, nos quais a _setosa_ é separada de forma consistente e a principal dificuldade ocorre entre as outras duas espécies.
+
+  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta mede a separação das espécies reais no plano e não a qualidade de um agrupamento, por isso não é comparável às silhuetas dos métodos de agrupamento. Já a trustworthiness, mede a preservação dos dez vizinhos mais próximos sendo uma métrica complementar. A comparação principal foi feita com a semente 42 e atributos sem normalização.
+  
   == UMAP
 
 ]
