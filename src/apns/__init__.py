@@ -5,6 +5,10 @@ import pandas as pd
 
 from apns.data import carregar_iris
 from apns.experiments import (
+    _prepare_results_directories,
+    _save_figure,
+    _save_table,
+    _select_best_row,
     evaluate_kernel_pca_model,
     evaluate_kmeanslike_model,
     evaluate_pca_model,
@@ -15,10 +19,6 @@ from apns.experiments import (
     export_kmedoids_results,
     export_tsne_results,
     export_umap_results,
-    prepare_results_directories,
-    save_figure,
-    save_table,
-    select_best_row,
     test_kmedoids_model,
 )
 from apns.models import treinable_model
@@ -56,23 +56,23 @@ def export_kmeans_like_results(
     results_dir: Path | None = None,
 ) -> dict[str, pd.DataFrame]:
     x, y = carregar_iris()
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
     best_by_model: dict[str, pd.DataFrame] = {}
     for config in configs:
         rows = evaluate_kmeanslike_model(x, y, config.cls)
         best = _best_kmeanslike_per_k(rows)
 
-        save_table(rows, tables_dir, f"{config.prefix}_metrics.csv")
-        save_table(best, tables_dir, f"{config.prefix}_best_by_k.csv")
-        save_figure(
+        _save_table(rows, tables_dir, f"{config.prefix}_metrics.csv")
+        _save_table(best, tables_dir, f"{config.prefix}_best_by_k.csv")
+        _save_figure(
             plot_silhouette_by_k(best, config.pretty_name),
             figures_dir / f"{config.prefix}_silhouette.png",
         )
 
         best_by_model[config.pretty_name] = best
 
-        chosen = select_best_row(best, metric="silhouette")
+        chosen = _select_best_row(best, metric="silhouette")
         print(
             f"{config.pretty_name}: k*={int(chosen['k'])}, "
             f"silhueta={chosen['silhouette']:.4f}, ARI={chosen['ari']:.4f}"
@@ -83,12 +83,12 @@ def export_kmeans_like_results(
 
 def export_pca_results(results_dir: Path | None = None) -> pd.DataFrame:
     x, y = carregar_iris()
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
     result = evaluate_pca_model(x)
 
-    save_table(result.variance, tables_dir, "pca_variance.csv")
-    save_table(result.components, tables_dir, "pca_components.csv")
-    save_figure(
+    _save_table(result.variance, tables_dir, "pca_variance.csv")
+    _save_table(result.components, tables_dir, "pca_components.csv")
+    _save_figure(
         plot_component_scatter(
             result.embedding,
             y,
@@ -106,11 +106,11 @@ def export_kernel_pca_results(
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
     x, y = carregar_iris()
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
     result = evaluate_kernel_pca_model(x, kernel=kernel)
 
-    save_table(result.variance, tables_dir, "kpca_variance.csv")
-    save_figure(
+    _save_table(result.variance, tables_dir, "kpca_variance.csv")
+    _save_figure(
         plot_component_scatter(
             result.embedding,
             y,

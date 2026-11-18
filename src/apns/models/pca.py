@@ -6,8 +6,6 @@ from sklearn.decomposition import PCA as SklearnPCA
 
 
 class PCA:
-    """Thin wrapper around scikit-learn PCA."""
-
     def __init__(self, model: SklearnPCA):
         self._model = model
 

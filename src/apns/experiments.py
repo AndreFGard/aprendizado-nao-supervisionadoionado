@@ -21,6 +21,7 @@ from apns.models import (
 )
 from apns.visualization import (
     plot_cluster_assignments,
+    plot_dbscan_eps_comparison,
     plot_dbscan_metrics,
     plot_hierarchical_dendrogram,
     plot_kmedoids_inertia,
@@ -36,7 +37,7 @@ from apns.visualization import (
 )
 
 
-def prepare_results_directories(
+def _prepare_results_directories(
     results_dir: Path | None,
 ) -> tuple[Path, Path]:
     if results_dir is None:
@@ -51,12 +52,12 @@ def prepare_results_directories(
     return tables_dir, figures_dir
 
 
-def save_figure(figure: Figure, path: Path) -> None:
+def _save_figure(figure: Figure, path: Path) -> None:
     figure.savefig(path)
     plt.close(figure)
 
 
-def save_table(
+def _save_table(
     results: pd.DataFrame,
     tables_dir: Path,
     filename: str,
@@ -64,7 +65,7 @@ def save_table(
     results.to_csv(tables_dir / filename, index=False)
 
 
-def select_best_row(
+def _select_best_row(
     results: pd.DataFrame,
     metric: str,
     fallback_metric: str | None = None,
@@ -76,6 +77,7 @@ def select_best_row(
     valid_results = results.dropna(subset=[fallback_metric])
     if not valid_results.empty:
         return valid_results.loc[valid_results[fallback_metric].idxmin()]
+    raise ValueError(f"No valid mnetric for {metric} ")
 
 
 def evaluate_kmeanslike_model(
@@ -208,7 +210,7 @@ def evaluate_kernel_fuzzy_kmeans_model(
                             "sigma2": model.sigma2,
                             "n_init": n_init,
                             "silhouette": metrics.calcular_silhueta(x, clusters),
-                            "rand_score": metrics.calcular_ari(y, clusters),
+                            "ari": metrics.calcular_ari(y, clusters),
                             "objective": model.objective_,
                             "n_iter": model.n_iter_,
                         }
@@ -244,11 +246,11 @@ def export_kernel_fuzzy_kmeans_results(
         sigma2_values=sigma2_values,
     )
 
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
-    save_table(results, tables_dir, "kernel_fuzzy_kmeans_metrics.csv")
+    _save_table(results, tables_dir, "kernel_fuzzy_kmeans_metrics.csv")
 
-    best_result = select_best_row(
+    best_result = _select_best_row(
         results,
         metric="silhouette",
         fallback_metric="objective",
@@ -268,19 +270,96 @@ def export_kernel_fuzzy_kmeans_results(
         model.labels_,
         "Kernel Fuzzy K-Means: melhor agrupamento",
     )
-    save_figure(
+    _save_figure(
         clusters_fig,
         figures_dir / "kernel_fuzzy_kmeans_clusters.png",
     )
 
     membership_fig = plot_membership_degrees(model.membership_)
-    save_figure(
+    _save_figure(
         membership_fig,
         figures_dir / "kernel_fuzzy_kmeans_memberships.png",
     )
 
+    k3_ari_result = (
+        results.loc[results["k"] == 3]
+        .sort_values("ari", ascending=False)
+        .iloc[0]
+    )
+    k3_sigma2 = k3_ari_result["sigma2"]
+    if pd.isna(k3_sigma2):
+        k3_sigma2 = None
+    k3_model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
+        n_clusters=3,
+        random_state=int(k3_ari_result["iter"]),
+        m=float(k3_ari_result["m"]),
+        sigma2=k3_sigma2,
+        n_init=n_init,
+        max_iter=model_max_iter,
+        tol=tol,
+    )
+    k3_model.fit(x)
+
+    cluster_species = (
+        pd.DataFrame({"cluster": k3_model.labels_, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    k3_cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
+
+    k3_clusters_fig = plot_cluster_assignments(
+        x,
+        k3_model.labels_,
+        "Kernel Fuzzy K-Means (k = 3): melhor ARI",
+        x_column="petal_length",
+        y_column="petal_width",
+        cluster_names=k3_cluster_names,
+    )
+    _save_figure(
+        k3_clusters_fig,
+        figures_dir / "kernel_fuzzy_kmeans_k3_ari_clusters.png",
+    )
+
+    k3_membership_fig = plot_membership_degrees(
+        k3_model.membership_,
+        cluster_names=k3_cluster_names,
+        title="Kernel Fuzzy K-Means (k = 3): graus de pertinência",
+    )
+    _save_figure(
+        k3_membership_fig,
+        figures_dir / "kernel_fuzzy_kmeans_k3_ari_memberships.png",
+    )
+
+    contingency = (
+        pd.crosstab(
+            pd.Series(y.to_numpy(), name="species"),
+            pd.Series(k3_model.labels_, name="cluster"),
+        )
+        .rename(index=species_names)
+        .rename(columns=k3_cluster_names)
+    )
+    contingency.to_csv(tables_dir / "kernel_fuzzy_kmeans_k3_ari_contingency.csv")
+
+    membership_table = pd.DataFrame(
+        k3_model.membership_,
+        columns=[k3_cluster_names[cluster] for cluster in range(3)],
+    )
+    membership_table.insert(0, "sample", range(len(membership_table)))
+    membership_table.to_csv(
+        tables_dir / "kernel_fuzzy_kmeans_k3_ari_membership.csv",
+        index=False,
+    )
+
     objective_fig = plot_objective_convergence(model.objective_history_)
-    save_figure(
+    _save_figure(
         objective_fig,
         figures_dir / "kernel_fuzzy_kmeans_objective_convergence.png",
     )
@@ -306,7 +385,7 @@ def evaluate_hierarchical_model(
                     "k": k,
                     "linkage": "centroid",
                     "silhouette": metrics.calcular_silhueta(x, clusters),
-                    "rand_score": metrics.calcular_ari(y, clusters),
+                    "ari": metrics.calcular_ari(y, clusters),
                 }
             )
     return pd.DataFrame(results)
@@ -326,16 +405,52 @@ def export_hierarchical_results(
         max_iter=max_iter,
     )
 
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
-    save_table(results, tables_dir, "hierarchical_metrics.csv")
+    _save_table(results, tables_dir, "hierarchical_metrics.csv")
 
-    model = hierarchical.HierarchicalCentroid.create(
-        n_clusters=2,
-    )
+    model = hierarchical.HierarchicalCentroid.create(n_clusters=3)
     model.fit(x)
-    dendrogram_fig = plot_hierarchical_dendrogram(model.linkage_matrix_)
-    save_figure(dendrogram_fig, figures_dir / "hierarchical_dendrogram.png")
+
+    k3_labels = model.get_clusters(k=3)
+    cluster_species = (
+        pd.DataFrame({"cluster": k3_labels, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    k3_cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
+    k3_clusters_fig = plot_cluster_assignments(
+        x,
+        k3_labels,
+        "Centroid Linkage (k = 3): agrupamento no plano das pétalas",
+        x_column="petal_length",
+        y_column="petal_width",
+        cluster_names=k3_cluster_names,
+    )
+    _save_figure(
+        k3_clusters_fig,
+        figures_dir / "hierarchical_k3_petal_clusters.png",
+    )
+
+    cut_height = (
+        model.linkage_matrix_[len(x) - 3 - 1, 2]
+        + model.linkage_matrix_[len(x) - 3, 2]
+    ) / 2
+    dendrogram_fig = plot_hierarchical_dendrogram(
+        model.linkage_matrix_,
+        truncate_p=30,
+        cut_height=cut_height,
+        title="Centroid Linkage: dendrograma truncado",
+    )
+    _save_figure(dendrogram_fig, figures_dir / "hierarchical_dendrogram.png")
 
     return results
 
@@ -372,7 +487,7 @@ def evaluate_kmedoids_model(
                             metric=metric_value,
                         ),
                         "inertia": model.inertia_,
-                        "rand_score": metrics.calcular_ari(y, clusters),
+                        "ari": metrics.calcular_ari(y, clusters),
                         "labels": json.dumps(clusters.tolist()),
                     }
                 )
@@ -398,7 +513,7 @@ def select_best_kmedoids_by_k(results: pd.DataFrame) -> pd.DataFrame:
 
 
 def select_best_kmedoids_configuration(results: pd.DataFrame) -> pd.DataFrame:
-    best_result = select_best_row(results, metric="silhouette")
+    best_result = _select_best_row(results, metric="silhouette")
     return results.loc[[best_result.name]].reset_index(drop=True)
 
 
@@ -418,29 +533,55 @@ def export_kmedoids_results(
         max_iter=max_iter,
     )
 
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
-    save_table(results, tables_dir, "kmedoids_metrics.csv")
+    _save_table(results, tables_dir, "kmedoids_metrics.csv")
     best_by_k = select_best_kmedoids_by_k(results)
     best_configuration = select_best_kmedoids_configuration(results)
-    save_table(best_by_k, tables_dir, "kmedoids_best_by_k.csv")
-    save_table(
+    _save_table(best_by_k, tables_dir, "kmedoids_best_by_k.csv")
+    _save_table(
         best_configuration,
         tables_dir,
         "kmedoids_best_configuration.csv",
     )
 
     silhouette_fig = plot_kmedoids_silhouette(results)
-    save_figure(silhouette_fig, figures_dir / "kmedoids_silhouette.png")
+    _save_figure(silhouette_fig, figures_dir / "kmedoids_silhouette.png")
     inertia_fig = plot_kmedoids_inertia(results)
-    save_figure(inertia_fig, figures_dir / "kmedoids_inertia.png")
-    kmedoids_labels = json.loads(best_configuration.iloc[0]["labels"])
+    _save_figure(inertia_fig, figures_dir / "kmedoids_inertia.png")
+
+    k3_result = best_by_k.loc[best_by_k["k"] == 3].iloc[0]
+    kmedoids_model = kmedoids.KMedoids.create(
+        n_clusters=3,
+        metric=metric if isinstance(metric, str) else str(metric[0]),
+        random_state=int(k3_result["iter"]),
+    )
+    kmedoids_model.fit(x)
+    kmedoids_labels = kmedoids_model.predict(x)
+    cluster_species = (
+        pd.DataFrame({"cluster": kmedoids_labels, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
     clusters_fig = plot_cluster_assignments(
         x,
         kmedoids_labels,
-        "K-Medoids: melhor agrupamento por silhueta",
+        "K-Medoids (k = 3): agrupamento no plano das pétalas",
+        x_column="petal_length",
+        y_column="petal_width",
+        medoid_indices=kmedoids_model.medoid_indices_,
+        cluster_names=cluster_names,
     )
-    save_figure(clusters_fig, figures_dir / "kmedoids_clusters.png")
+    _save_figure(clusters_fig, figures_dir / "kmedoids_clusters.png")
 
     return results
 
@@ -480,8 +621,9 @@ def evaluate_dbscan_model(
                 "distance": distance,
                 "n_clusters": n_clusters,
                 "n_ruido": n_ruido,
+                "cobertura": 100 * (len(clusters) - n_ruido) / len(clusters),
                 "silhouette": silhouete,
-                "rand_score": metrics.calcular_ari(
+                "ari": metrics.calcular_ari(
                     y.loc[pontos_validos],
                     clusters[pontos_validos],
                 ),
@@ -512,21 +654,35 @@ def export_dbscan_results(
     ]
     all_results = pd.concat(results, ignore_index=True)
 
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
 
     plots = plot_dbscan_metrics(all_results)
-    save_table(all_results, tables_dir, "dbscan_metrics.csv")
-    save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
-    save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
+    _save_table(all_results, tables_dir, "dbscan_metrics.csv")
+    _save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
+    _save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
+    _save_figure(plots.coverage_fig, figures_dir / "dbscan_coverage.png")
 
+    eligible = all_results[
+        all_results["n_ruido"].le(10)
+        & all_results["silhouette"].notna()
+    ]
+    if eligible.empty:
+        raise ValueError(
+            "Nenhuma configuração do DBSCAN possui silhueta válida "
+            "com no máximo 10 observações de ruído"
+        )
+    selected_row = eligible.sort_values(
+        ["silhouette", "eps", "minpts"],
+        ascending=[False, True, True],
+    ).iloc[0]
     selected_result = evaluate_dbscan_model(
         x=x,
         y=y,
-        eps=0.6,
-        minpts=5,
+        eps=float(selected_row["eps"]),
+        minpts=int(selected_row["minpts"]),
         distance=distance,
     )
-    save_table(
+    _save_table(
         selected_result,
         tables_dir,
         "dbscan_selected_configuration.csv",
@@ -537,9 +693,45 @@ def export_dbscan_results(
         selected_labels,
         "DBSCAN: agrupamento selecionado",
     )
-    save_figure(
+    _save_figure(
         selected_clusters_fig,
         figures_dir / "dbscan_clusters.png",
+    )
+
+    petal_model = dbscan.DBSCAN.create(
+        eps=0.4,
+        minpts=3,
+        distance=distance,
+    )
+    petal_labels = petal_model.fit_predict(x)
+    petal_clusters_fig = plot_cluster_assignments(
+        x,
+        petal_labels,
+        "DBSCAN: eps = 0,4 e minpts = 3",
+        x_column="petal_length",
+        y_column="petal_width",
+    )
+    _save_figure(
+        petal_clusters_fig,
+        figures_dir / "dbscan_eps04_minpts3_petals.png",
+    )
+
+    def dbscan_factory(*, eps: float, minpts: int):
+        return dbscan.DBSCAN.create(
+            eps=eps,
+            minpts=minpts,
+            distance=distance,
+        )
+
+    eps_comparison_fig = plot_dbscan_eps_comparison(
+        x=x,
+        eps_values=(0.4, 1.0),
+        minpts=5,
+        model_factory=dbscan_factory,
+    )
+    _save_figure(
+        eps_comparison_fig,
+        figures_dir / "dbscan_eps04_eps10_comparison.png",
     )
 
     return all_results
@@ -598,7 +790,7 @@ def export_tsne_results(
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
     perplexity_values = [30.0] if perplexity_values is None else perplexity_values
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
     result_rows = []
 
     embeddings = {}
@@ -624,21 +816,21 @@ def export_tsne_results(
         )
 
     results = pd.DataFrame(result_rows)
-    save_table(results, tables_dir, "tsne_metrics.csv")
+    _save_table(results, tables_dir, "tsne_metrics.csv")
 
     embeddings_figure = plot_tsne_embeddings_comparison(embeddings, y)
-    save_figure(
+    _save_figure(
         embeddings_figure,
         figures_dir / "tsne_embeddings_perplexities.png",
     )
 
     perplexity_figure = plot_tsne_perplexity_comparison(results)
-    save_figure(
+    _save_figure(
         perplexity_figure,
         figures_dir / "tsne_perplexity_comparison.png",
     )
 
-    best_result = select_best_row(results, metric="silhouette")
+    best_result = _select_best_row(results, metric="silhouette")
     embedding = embeddings[float(best_result["perplexity"])]
     figure = plot_tsne_embedding(
         embedding,
@@ -648,7 +840,7 @@ def export_tsne_results(
             f"(perplexidade={best_result['perplexity']})"
         ),
     )
-    save_figure(figure, figures_dir / "tsne_embedding.png")
+    _save_figure(figure, figures_dir / "tsne_embedding.png")
 
     return results
 
@@ -703,7 +895,7 @@ def export_umap_results(
 ) -> pd.DataFrame:
     n_neighbors_values = [15] if n_neighbors_values is None else n_neighbors_values
     min_dist_values = [0.1] if min_dist_values is None else min_dist_values
-    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    tables_dir, figures_dir = _prepare_results_directories(results_dir)
     result_rows = []
     embeddings = {}
 
@@ -728,21 +920,21 @@ def export_umap_results(
             )
 
     results = pd.DataFrame(result_rows)
-    save_table(results, tables_dir, "umap_metrics.csv")
+    _save_table(results, tables_dir, "umap_metrics.csv")
 
     embeddings_figure = plot_umap_embeddings_comparison(embeddings, y)
-    save_figure(
+    _save_figure(
         embeddings_figure,
         figures_dir / "umap_embeddings_parameters.png",
     )
 
     parameter_figure = plot_umap_parameter_comparison(results)
-    save_figure(
+    _save_figure(
         parameter_figure,
         figures_dir / "umap_parameter_comparison.png",
     )
 
-    best_result = select_best_row(results, metric="silhouette")
+    best_result = _select_best_row(results, metric="silhouette")
     embedding = embeddings[
         (int(best_result["n_neighbors"]), float(best_result["min_dist"]))
     ]
@@ -755,7 +947,7 @@ def export_umap_results(
             f"min_dist={best_result['min_dist']:g})"
         ),
     )
-    save_figure(figure, figures_dir / "umap_embedding.png")
+    _save_figure(figure, figures_dir / "umap_embedding.png")
 
     return results
 
@@ -766,13 +958,13 @@ def comparar_algoritmos_por_silhueta(
     """Compara cada algoritmo pela configuração de maior silhueta."""
     comparacao = []
     for nome, resultados_modelo in resultados.items():
-        melhor = select_best_row(resultados_modelo, metric="silhouette")
+        melhor = _select_best_row(resultados_modelo, metric="silhouette")
         comparacao.append(
             {
                 "algorithm": nome,
                 "n_clusters": melhor.get("k", melhor.get("n_clusters")),
                 "silhouette": melhor["silhouette"],
-                "ari": melhor.get("ari", melhor.get("rand_score")),
+                "ari": melhor["ari"],
                 "metric": melhor.get("metric"),
                 "linkage": melhor.get("linkage"),
                 "m": melhor.get("m"),
@@ -797,8 +989,8 @@ def export_comparacao_algoritmos(
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
     """Exporta a comparação dos algoritmos para uma tabela CSV."""
-    tables_dir, _ = prepare_results_directories(results_dir)
+    tables_dir, _ = _prepare_results_directories(results_dir)
 
     comparacao = comparar_algoritmos_por_silhueta(resultados)
-    save_table(comparacao, tables_dir, "algorithm_comparison.csv")
+    _save_table(comparacao, tables_dir, "algorithm_comparison.csv")
     return comparacao

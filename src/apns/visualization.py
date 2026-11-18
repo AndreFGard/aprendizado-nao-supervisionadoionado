@@ -14,7 +14,7 @@ px.defaults.width = 640  # pyright: ignore[reportAttributeAccessIssue]
 
 @dataclass
 class KMeansLikeMetrics:
-    rand_score_fig: plotly.graph_objs.Figure
+    ari_fig: plotly.graph_objs.Figure
     silhouette_fig: plotly.graph_objs.Figure
     best_metrics_per_n_clusters: pd.DataFrame
 
@@ -23,6 +23,7 @@ class KMeansLikeMetrics:
 class DBSCANMetrics:
     silhouette_fig: Figure
     noise_fig: Figure
+    coverage_fig: Figure
     metrics: pd.DataFrame
 
 
@@ -92,20 +93,51 @@ def plot_cluster_assignments(
     x: pd.DataFrame,
     labels,
     title: str,
+    x_column: str | None = None,
+    y_column: str | None = None,
+    medoid_indices: np.ndarray | None = None,
+    cluster_names: dict[int, str] | None = None,
 ) -> Figure:
     figure, axis = plt.subplots(figsize=(8, 5))
-    scatter = axis.scatter(
-        x.iloc[:, 0],
-        x.iloc[:, 1],
-        c=labels,
-        cmap="tab10",
-        edgecolors="black",
-        linewidths=0.3,
-    )
-    axis.set_xlabel(x.columns[0])
-    axis.set_ylabel(x.columns[1])
+    x_column = x_column or x.columns[0]
+    y_column = y_column or x.columns[1]
+    cluster_labels = np.asarray(labels)
+
+    for cluster in np.unique(cluster_labels):
+        cluster_points = cluster_labels == cluster
+        cluster_name = (
+            cluster_names.get(int(cluster), f"Cluster {cluster}")
+            if cluster_names is not None
+            else f"Cluster {cluster}"
+        )
+        if cluster_names is None and cluster == -1:
+            cluster_name = "Ruído"
+        axis.scatter(
+            x.loc[cluster_points, x_column],
+            x.loc[cluster_points, y_column],
+            c=[plt.get_cmap("tab10")(cluster % 10)],
+            edgecolors="black",
+            linewidths=0.3,
+            label=cluster_name,
+        )
+
+    if medoid_indices is not None:
+        medoids = x.iloc[medoid_indices]
+        axis.scatter(
+            medoids[x_column],
+            medoids[y_column],
+            marker="X",
+            s=180,
+            c="black",
+            edgecolors="white",
+            linewidths=1.0,
+            label="Medóide",
+        )
+
+    axis.set_xlabel(x_column.replace("_", " ").title())
+    axis.set_ylabel(y_column.replace("_", " ").title())
     axis.set_title(title)
-    figure.colorbar(scatter, ax=axis, label="Rótulo do cluster")
+    axis.legend(title="Grupos")
     figure.tight_layout()
     return figure
 
@@ -319,13 +351,23 @@ def plot_component_scatter(
     return figure
 
 
-def plot_membership_degrees(membership: np.ndarray) -> Figure:
+def plot_membership_degrees(
+    membership: np.ndarray,
+    cluster_names: dict[int, str] | None = None,
+    title: str = "Kernel Fuzzy K-Means: graus de pertinência",
+) -> Figure:
     figure, axis = plt.subplots(figsize=(10, 5))
     image = axis.imshow(membership.T, aspect="auto", cmap="viridis", vmin=0, vmax=1)
     axis.set_xlabel("Amostra")
-    axis.set_ylabel("Cluster")
-    axis.set_title("Kernel Fuzzy K-Means: graus de pertinência")
-    axis.set_yticks(range(membership.shape[1]))
+    axis.set_ylabel("Grupo")
+    axis.set_title(title)
+    if cluster_names is None:
+        axis.set_yticks(range(membership.shape[1]))
+    else:
+        axis.set_yticks(
+            range(membership.shape[1]),
+            [cluster_names.get(cluster, f"Cluster {cluster}") for cluster in range(membership.shape[1])],
+        )
     figure.colorbar(image, ax=axis, label="Pertinência")
     figure.tight_layout()
     return figure
@@ -345,9 +387,28 @@ def plot_objective_convergence(objective_history: list[float]) -> Figure:
 def plot_hierarchical_dendrogram(
     linkage_matrix,
     title: str = "Agrupamento hierárquico: dendrograma",
+    truncate_p: int | None = None,
+    cut_height: float | None = None,
 ) -> Figure:
     figure, axis = plt.subplots(figsize=(12, 6))
-    dendrogram(linkage_matrix, ax=axis)
+    dendrogram(
+        linkage_matrix,
+        ax=axis,
+        truncate_mode="lastp" if truncate_p is not None else None,
+        p=truncate_p,
+        show_leaf_counts=truncate_p is not None,
+        leaf_rotation=90,
+    )
+    if cut_height is not None:
+        axis.axhline(
+            cut_height,
+            color="crimson",
+            linestyle="--",
+            linewidth=1.5,
+            label="Corte para k = 3",
+        )
+        axis.legend()
+    axis.set_title(title)
     axis.set_xlabel("Observações")
     axis.set_ylabel("Distância")
     axis.set_title(title)
@@ -360,13 +421,13 @@ def plot_kmeans_like_metrics(df_metrics: pd.DataFrame, model_name: str):
     # TODO rename labels
     # TODO decide if this is the best plot
     # TODO decide if its desirable to see teh distrbution of metrics per iteration or if a simple line plot of the .max() does the job
-    rand_score_fig = px.box(
+    ari_fig = px.box(
         df_metrics,
         x="k",
-        y="rand_score",
+        y="ari",
         boxmode="group",
         points="all",
-        title=f"{model_name} Rand Index",
+        title=f"{model_name} ARI",
     )
 
     silhouette_fig = px.box(
@@ -379,17 +440,17 @@ def plot_kmeans_like_metrics(df_metrics: pd.DataFrame, model_name: str):
     )
 
     best_values = df_metrics.groupby(["k", "model_name"])[
-        ["silhouette", "rand_score"]
+        ["silhouette", "ari"]
     ].max()
     best_values = best_values.rename(
         columns={
             "silhouette": "Max silhouette",
-            "rand_score": "Max Rand Index",
+            "ari": "Max ARI",
         }
     )
 
     return KMeansLikeMetrics(
-        rand_score_fig=rand_score_fig,
+        ari_fig=ari_fig,
         silhouette_fig=silhouette_fig,
         best_metrics_per_n_clusters=best_values,
     )
@@ -432,8 +493,64 @@ def plot_dbscan_metrics(
     noise_axis.legend()
     noise_fig.tight_layout()
 
+    coverage_fig, coverage_axis = plt.subplots(figsize=(8, 5))
+    for minpts, group in df_metrics.groupby("minpts"):
+        group = group.sort_values("eps")
+        coverage_axis.plot(
+            group["eps"],
+            group["cobertura"],
+            marker="o",
+            label=f"min_samples={minpts}",
+        )
+    coverage_axis.set_xlabel("eps")
+    coverage_axis.set_ylabel("Cobertura (%)")
+    coverage_axis.set_title(f"{model_name}: Cobertura por eps")
+    coverage_axis.set_ylim(0, 100)
+    coverage_axis.grid()
+    coverage_axis.legend()
+    coverage_fig.tight_layout()
+
     return DBSCANMetrics(
         silhouette_fig=silhouette_fig,
         noise_fig=noise_fig,
+        coverage_fig=coverage_fig,
         metrics=df_metrics,
     )
+
+
+def plot_dbscan_eps_comparison(
+    x: pd.DataFrame,
+    eps_values: tuple[float, ...],
+    minpts: int,
+    model_factory,
+) -> Figure:
+    figure, axes = plt.subplots(
+        1,
+        len(eps_values),
+        figsize=(6 * len(eps_values), 5),
+        squeeze=False,
+    )
+
+    for axis, eps in zip(axes.flat, eps_values):
+        model = model_factory(eps=eps, minpts=minpts)
+        labels = model.fit_predict(x)
+        for cluster in np.unique(labels):
+            cluster_points = labels == cluster
+            name = "Ruído" if cluster == -1 else f"Cluster {cluster}"
+            axis.scatter(
+                x.loc[cluster_points, "petal_length"],
+                x.loc[cluster_points, "petal_width"],
+                c=[plt.get_cmap("tab10")(cluster % 10)],
+                edgecolors="black",
+                linewidths=0.3,
+                label=name,
+            )
+        axis.set_xlabel("Petal Length")
+        axis.set_ylabel("Petal Width")
+        axis.set_title(f"eps = {eps:g}, minpts = {minpts}")
+        axis.legend(title="Grupos")
+        axis.grid(alpha=0.2)
+
+    figure.suptitle("DBSCAN: comparação entre valores de eps")
+    figure.tight_layout()
+    return figure

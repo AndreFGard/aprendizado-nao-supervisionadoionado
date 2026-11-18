@@ -6,13 +6,6 @@ from sklearn.decomposition import KernelPCA as SklearnKernelPCA
 
 
 class KernelPCA:
-    """Thin wrapper around scikit-learn KernelPCA.
-
-    RBF is the project's configurable kernel default. All other parameters
-    keep their scikit-learn defaults; for RBF, `gamma=None` lets scikit-learn
-    use its default value of `1 / n_features`.
-    """
-
     def __init__(self, model: SklearnKernelPCA):
         self._model = model
 
