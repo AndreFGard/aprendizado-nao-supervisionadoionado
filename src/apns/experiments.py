@@ -37,12 +37,13 @@ def _prepare_results_directories(
     results_dir: Path | None,
 ) -> tuple[Path, Path]:
     if results_dir is None:
-        results_dir = Path(__file__).resolve().parents[2] / "results"
+        report_dir = Path(__file__).resolve().parents[2] / "report"
+        tables_dir = report_dir / "tables"
+        figures_dir = report_dir / "imagens"
     else:
         results_dir = Path(results_dir)
-
-    tables_dir = results_dir / "tables"
-    figures_dir = results_dir / "figures"
+        tables_dir = results_dir / "tables"
+        figures_dir = results_dir / "imagens"
     tables_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
     return tables_dir, figures_dir

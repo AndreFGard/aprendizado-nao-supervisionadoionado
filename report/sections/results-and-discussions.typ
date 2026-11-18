@@ -55,6 +55,55 @@
   == Fuzzy K-Means
 
   == Kernel Fuzzy K-Means
+
+  Foram realizadas 480 execuções, correspondentes a 48 combinações de parâmetros ($k in {2, 3, 4, 5}$, $m in {1,5; 2,0; 2,5}$ e $sigma^2 in {"automático"; 0,5; 1,0; 2,0}$) com dez sementes cada. Em 34 das 48 combinações, as dez sementes levaram a resultados idênticos em silhueta e ARI. Nas 14 restantes houve variação, concentrada em $k >= 3$ e, em geral, associada a $sigma^2 = 0,5$ ou $m = 2,5$. Para $k = 2$, o maior desvio-padrão da silhueta entre sementes foi de 0,001, o que indica solução praticamente única. A @tab:kfkm resume as métricas por valor de $k$, considerando todas as 120 execuções de cada $k$.
+
+  #figure(
+    table(
+      columns: 5,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*$k$*], [*Sil. média*], [*Sil. mín.*], [*ARI média*], [*ARI máx.*]),
+      table.hline(),
+      [2], [0,686], [0,683], [0,564], [0,568],
+      [3], [0,532], [0,428], [0,765], [0,818],
+      [4], [0,474], [0,230], [0,671], [0,719],
+      [5], [0,396], [0,168], [0,575], [0,734],
+      table.hline(),
+    ),
+    caption: [Kernel Fuzzy K-Means: métricas por número de agrupamentos, considerando todas as combinações de $m$ e $sigma^2$ e todas as sementes.],
+    kind: table,
+  ) <tab:kfkm>
+
+  A silhueta média decresce monotonicamente com $k$, de 0,686 em $k = 2$ para 0,396 em $k = 5$, e o valor mínimo observado cai para 0,168, o que mostra que valores elevados de $k$, combinados com certos parâmetros, produzem partições mal separadas no espaço original. O ARI médio é máximo em $k = 3$ (0,765) e o ARI máximo também (0,818), enquanto $k = 2$ apresenta o menor ARI (0,568), pois a partição em dois grupos não pode corresponder às três espécies.
+
+  Seguindo o critério de seleção descrito na metodologia, a configuração de maior silhueta foi $k = 2$, $m = 1,5$ e $sigma^2 = 0,5$, com silhueta de 0,6864 e ARI de 0,5681. Esse valor de silhueta é compartilhado por outras sete das doze combinações com $k = 2$, de modo que a escolha entre elas não altera as métricas. O ARI obtido é idêntico ao de uma partição que separa exatamente a _setosa_ das demais espécies (0,568), o que é consistente com o mapa de pertinências da @fig:kfkm-pert. Nele, as amostras de 0 a 49, que correspondem à _setosa_ na ordenação original da base, apresentam pertinência elevada ao agrupamento 0, enquanto as demais pertencem predominantemente ao agrupamento 1. Nesse segundo grupo, as pertinências são mais baixas e há regiões de valores intermediários, principalmente entre as amostras de índices aproximados 78 e 110, indicando observações de fronteira. Esse tipo de informação é preservado pela partição fuzzy, mas é perdido quando cada observação é atribuída apenas ao agrupamento de maior pertinência, como na @fig:kfkm-clusters. Nessa figura, os dados são projetados apenas em `sepal_length` e `sepal_width`, e a sobreposição visual entre os grupos não reflete integralmente a separação obtida com os quatro atributos.
+
+  #figure(
+    image("kernel_fuzzy_kmeans_memberships.png", width: 100%),
+    caption: [Graus de pertinência da melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2 = 0,5$).],
+  ) <fig:kfkm-pert>
+
+  #figure(
+    image("kernel_fuzzy_kmeans_clusters.png", width: 100%),
+    caption: [Melhor agrupamento por silhueta, projetado em `sepal_length` e `sepal_width`.],
+  ) <fig:kfkm-clusters>
+
+  A @fig:kfkm-conv mostra a convergência da função objetivo dessa configuração, que terminou em 18 iterações. A função decresce de aproximadamente 85,2 até 80,33 e permanece praticamente estável a partir da iteração 12. Há um patamar nas primeiras iterações, seguido de queda acentuada entre as iterações 6 e 10. Esse comportamento é compatível com o critério de parada por tolerância de $10^(-5)$. Vale observar que os valores da função objetivo dependem de $m$ e de $sigma^2$ e não são comparáveis entre configurações. Para $k = 2$ e $m = 1,5$, por exemplo, o valor médio é 27,7 com $sigma^2$ automático, 80,3 com $sigma^2 = 0,5$, 62,4 com $sigma^2 = 1,0$ e 43,4 com $sigma^2 = 2,0$. Por isso, a função objetivo foi usada apenas para a convergência e para a escolha entre as inicializações internas, e não para comparar configurações.
+
+  #figure(
+    image("kernel_fuzzy_kmeans_objective_convergence.png", width: 100%),
+    caption: [Convergência da função objetivo da melhor configuração por silhueta.],
+  ) <fig:kfkm-conv>
+
+  Para $k = 3$, o ARI máximo (0,8178) foi obtido com $m = 2,0$ e $sigma^2 = 0,5$, com silhueta de 0,531. Valores muito próximos (0,8176) ocorreram com $m = 1,5$ e $sigma^2 in {0,5; 1,0}$. Já a maior silhueta válida para $k = 3$ foi de 0,549, com $m = 1,5$ e $sigma^2$ automático, associada a um ARI menor (0,729). Há, portanto, uma divergência entre os critérios: a silhueta, calculada no espaço original, favorece $k = 2$ e, dentro de $k = 3$, configurações com menor concordância com as espécies, enquanto o ARI aponta $k = 3$ como o número de agrupamentos mais compatível com a classificação real. É importante ressaltar que o ARI máximo foi usado apenas para análise posterior dos resultados, pois depende dos rótulos reais e não faz parte do critério de seleção. Além disso, a silhueta é calculada no espaço original, enquanto o agrupamento é feito no espaço de características induzido pelo kernel, de modo que ela não avalia diretamente a geometria em que o algoritmo opera.
+
+  Quanto aos hiperparâmetros, a média das métricas indica efeitos moderados. Em $k = 3$, o ARI médio foi maior com $sigma^2 = 1,0$ (0,793) do que com $sigma^2$ automático (0,743), $sigma^2 = 0,5$ (0,746) e $sigma^2 = 2,0$ (0,777), e foi ligeiramente menor com $m = 2,5$ (0,746) do que com $m = 1,5$ (0,775) e $m = 2,0$ (0,773). Para $k = 4$ e $k = 5$, o ARI médio foi maior com $m = 2,5$ (0,689 e 0,593) do que com $m = 1,5$ (0,657 e 0,568). A largura menor do kernel ($sigma^2 = 0,5$) reduziu a silhueta média para $k >= 4$ (0,427 em $k = 4$ e 0,358 em $k = 5$, contra 0,494 e 0,412 com $sigma^2$ automático).
+
+  Os parâmetros extremos também produziram instabilidade. Com $k = 3$, $m = 2,5$ e $sigma^2 = 0,5$, as dez sementes geraram quatro soluções distintas, com silhueta entre 0,428 e 0,686. Em duas dessas execuções, silhueta e ARI coincidiram com os de $k = 2$ (0,6864 e 0,5681), o que indica que, provavelmente, um dos três agrupamentos ficou sem observações após a atribuição por maior pertinência. Além disso, 13 das 480 execuções atingiram o limite de 100 iterações: uma em $k = 3$ ($m = 2,5$, $sigma^2 = 0,5$), duas em $k = 4$ e todas as dez em $k = 5$ ($m = 2,5$, $sigma^2 = 1,0$). Nesses casos, o critério de tolerância não foi atingido, e os resultados devem ser interpretados com cautela. Isso inclui os valores de ARI máximo em $k = 4$ (0,719) e $k = 5$ (0,734), obtidos justamente nessa combinação de parâmetros.
+
+  Em síntese, o Kernel Fuzzy K-Means separa consistentemente a _setosa_ das demais espécies, e as dificuldades de agrupamento concentram-se na fronteira entre _versicolor_ e _virginica_. A silhueta no espaço original favorece $k = 2$, enquanto $k = 3$ alcança as maiores concordâncias com as espécies (ARI de até 0,818) em configurações com $sigma^2$ moderado e $m$ entre 1,5 e 2,0. Valores de $m$ e $sigma^2$ extremos tendem a gerar soluções instáveis ou de convergência incompleta. Por fim, o uso dos atributos sem normalização influencia as distâncias que alimentam o kernel gaussiano, o que pode afetar a escolha adequada de $sigma^2$.
   
   == Misturas gaussianas com EM
 
