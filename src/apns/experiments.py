@@ -367,11 +367,22 @@ def export_kmedoids_results(
     _save_figure(silhouette_fig, figures_dir / "kmedoids_silhouette.png")
     inertia_fig = plot_kmedoids_inertia(results)
     _save_figure(inertia_fig, figures_dir / "kmedoids_inertia.png")
-    kmedoids_labels = json.loads(best_configuration.iloc[0]["labels"])
+
+    k3_result = best_by_k.loc[best_by_k["k"] == 3].iloc[0]
+    kmedoids_model = kmedoids.KMedoids.create(
+        n_clusters=3,
+        metric=metric if isinstance(metric, str) else str(metric[0]),
+        random_state=int(k3_result["iter"]),
+    )
+    kmedoids_model.fit(x)
+    kmedoids_labels = kmedoids_model.predict(x)
     clusters_fig = plot_cluster_assignments(
         x,
         kmedoids_labels,
-        "K-Medoids: melhor agrupamento por silhueta",
+        "K-Medoids (k = 3): agrupamento no plano das pétalas",
+        x_column="petal_length",
+        y_column="petal_width",
+        medoid_indices=kmedoids_model.medoid_indices_,
     )
     _save_figure(clusters_fig, figures_dir / "kmedoids_clusters.png")
 

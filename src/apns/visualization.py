@@ -79,20 +79,43 @@ def plot_cluster_assignments(
     x: pd.DataFrame,
     labels,
     title: str,
+    x_column: str | None = None,
+    y_column: str | None = None,
+    medoid_indices: np.ndarray | None = None,
 ) -> Figure:
     figure, axis = plt.subplots(figsize=(8, 5))
-    scatter = axis.scatter(
-        x.iloc[:, 0],
-        x.iloc[:, 1],
-        c=labels,
-        cmap="tab10",
-        edgecolors="black",
-        linewidths=0.3,
-    )
-    axis.set_xlabel(x.columns[0])
-    axis.set_ylabel(x.columns[1])
+    x_column = x_column or x.columns[0]
+    y_column = y_column or x.columns[1]
+    cluster_labels = np.asarray(labels)
+
+    for cluster in np.unique(cluster_labels):
+        cluster_points = cluster_labels == cluster
+        axis.scatter(
+            x.loc[cluster_points, x_column],
+            x.loc[cluster_points, y_column],
+            c=[plt.get_cmap("tab10")(cluster % 10)],
+            edgecolors="black",
+            linewidths=0.3,
+            label=f"Cluster {cluster}",
+        )
+
+    if medoid_indices is not None:
+        medoids = x.iloc[medoid_indices]
+        axis.scatter(
+            medoids[x_column],
+            medoids[y_column],
+            marker="X",
+            s=180,
+            c="black",
+            edgecolors="white",
+            linewidths=1.0,
+            label="Medóide",
+        )
+
+    axis.set_xlabel(x_column.replace("_", " ").title())
+    axis.set_ylabel(y_column.replace("_", " ").title())
     axis.set_title(title)
-    figure.colorbar(scatter, ax=axis, label="Rótulo do cluster")
+    axis.legend(title="Grupos")
     figure.tight_layout()
     return figure
 
