@@ -341,11 +341,47 @@ def export_hierarchical_results(
 
     _save_table(results, tables_dir, "hierarchical_metrics.csv")
 
-    model = hierarchical.HierarchicalCentroid.create(
-        n_clusters=2,
-    )
+    model = hierarchical.HierarchicalCentroid.create(n_clusters=3)
     model.fit(x)
-    dendrogram_fig = plot_hierarchical_dendrogram(model.linkage_matrix_)
+
+    k3_labels = model.get_clusters(k=3)
+    cluster_species = (
+        pd.DataFrame({"cluster": k3_labels, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    k3_cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
+    k3_clusters_fig = plot_cluster_assignments(
+        x,
+        k3_labels,
+        "Centroid Linkage (k = 3): agrupamento no plano das pétalas",
+        x_column="petal_length",
+        y_column="petal_width",
+        cluster_names=k3_cluster_names,
+    )
+    _save_figure(
+        k3_clusters_fig,
+        figures_dir / "hierarchical_k3_petal_clusters.png",
+    )
+
+    cut_height = (
+        model.linkage_matrix_[len(x) - 3 - 1, 2]
+        + model.linkage_matrix_[len(x) - 3, 2]
+    ) / 2
+    dendrogram_fig = plot_hierarchical_dendrogram(
+        model.linkage_matrix_,
+        truncate_p=30,
+        cut_height=cut_height,
+        title="Centroid Linkage: dendrograma truncado",
+    )
     _save_figure(dendrogram_fig, figures_dir / "hierarchical_dendrogram.png")
 
     return results

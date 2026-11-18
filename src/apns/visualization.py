@@ -342,9 +342,28 @@ def plot_objective_convergence(objective_history: list[float]) -> Figure:
 def plot_hierarchical_dendrogram(
     linkage_matrix,
     title: str = "Agrupamento hierárquico: dendrograma",
+    truncate_p: int | None = None,
+    cut_height: float | None = None,
 ) -> Figure:
     figure, axis = plt.subplots(figsize=(12, 6))
-    dendrogram(linkage_matrix, ax=axis)
+    dendrogram(
+        linkage_matrix,
+        ax=axis,
+        truncate_mode="lastp" if truncate_p is not None else None,
+        p=truncate_p,
+        show_leaf_counts=truncate_p is not None,
+        leaf_rotation=90,
+    )
+    if cut_height is not None:
+        axis.axhline(
+            cut_height,
+            color="crimson",
+            linestyle="--",
+            linewidth=1.5,
+            label="Corte para k = 3",
+        )
+        axis.legend()
+    axis.set_title(title)
     axis.set_xlabel("Observações")
     axis.set_ylabel("Distância")
     axis.set_title(title)
