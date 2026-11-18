@@ -290,6 +290,35 @@ def plot_umap_parameter_comparison(df_metrics: pd.DataFrame) -> Figure:
     return figure
 
 
+def plot_component_scatter(
+    embedding: np.ndarray,
+    labels: pd.Series,
+    x_label: str,
+    y_label: str,
+    title: str,
+) -> Figure:
+    """Dispersão 2D de um embedding, com os rótulos reais por cor."""
+    figure, axis = plt.subplots(figsize=(9, 6))
+    labels_array = labels.to_numpy()
+
+    for label in pd.unique(labels_array):
+        mask = labels_array == label
+        axis.scatter(
+            embedding[mask, 0],
+            embedding[mask, 1],
+            label=str(label),
+            alpha=0.8,
+        )
+
+    axis.set_title(title)
+    axis.set_xlabel(x_label)
+    axis.set_ylabel(y_label)
+    axis.legend()
+    axis.grid(alpha=0.2)
+    figure.tight_layout()
+    return figure
+
+
 def plot_membership_degrees(membership: np.ndarray) -> Figure:
     figure, axis = plt.subplots(figsize=(10, 5))
     image = axis.imshow(membership.T, aspect="auto", cmap="viridis", vmin=0, vmax=1)

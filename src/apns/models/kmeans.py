@@ -12,7 +12,7 @@ class KMeans(treinable_model.ITreinableModel):
 
     def __init__(self, model: sklearn.cluster.KMeans):
         self._model = model
-
+    
     @classmethod
     def create(cls, n_clusters: int, random_state: int = 42) -> Self:
         return cls(

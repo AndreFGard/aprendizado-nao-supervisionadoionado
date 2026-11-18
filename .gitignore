@@ -65,3 +65,6 @@ ENV/
 .DS_Store   
 
 uv.lock
+
+results/**/*.png
+results/**/*.csv

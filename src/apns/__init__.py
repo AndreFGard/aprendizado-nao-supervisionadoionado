@@ -5,7 +5,9 @@ import pandas as pd
 
 from apns.data import carregar_iris
 from apns.experiments import (
+    evaluate_kernel_pca_model,
     evaluate_kmeanslike_model,
+    evaluate_pca_model,
     export_comparacao_algoritmos,
     export_dbscan_results,
     export_hierarchical_results,
@@ -23,7 +25,7 @@ from apns.models import treinable_model
 from apns.models.gaussian_mixture import GaussianMixture
 from apns.models.kmeans import KMeans
 from apns.models.kmeans_fuzzy import KMeansFuzzy
-from apns.visualization import plot_silhouette_by_k
+from apns.visualization import plot_component_scatter, plot_silhouette_by_k
 
 
 @dataclasses.dataclass
@@ -77,6 +79,48 @@ def export_kmeans_like_results(
         )
 
     return best_by_model
+
+
+def export_pca_results(results_dir: Path | None = None) -> pd.DataFrame:
+    x, y = carregar_iris()
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    result = evaluate_pca_model(x)
+
+    save_table(result.variance, tables_dir, "pca_variance.csv")
+    save_table(result.components, tables_dir, "pca_components.csv")
+    save_figure(
+        plot_component_scatter(
+            result.embedding,
+            y,
+            x_label="Componente principal 1",
+            y_label="Componente principal 2",
+            title="PCA: duas primeiras componentes",
+        ),
+        figures_dir / "pca_scatter.png",
+    )
+    return result.variance
+
+
+def export_kernel_pca_results(
+    kernel: str = "rbf",
+    results_dir: Path | None = None,
+) -> pd.DataFrame:
+    x, y = carregar_iris()
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
+    result = evaluate_kernel_pca_model(x, kernel=kernel)
+
+    save_table(result.variance, tables_dir, "kpca_variance.csv")
+    save_figure(
+        plot_component_scatter(
+            result.embedding,
+            y,
+            x_label="Componente kernel 1",
+            y_label="Componente kernel 2",
+            title=f"Kernel PCA ({kernel}): duas primeiras componentes",
+        ),
+        figures_dir / "kpca_scatter.png",
+    )
+    return result.variance
 
 
 def main() -> None:
@@ -153,8 +197,16 @@ def main() -> None:
     print(comparison)
 
     print(
-        "\n--- Executando os algoritmos de redução de dimensionalidade t-SNE e UMAP ---"
+        "\n--- Executando os algoritmos de redução de dimensionalidade "
+        "PCA, Kernel PCA, t-SNE e UMAP ---"
     )
+
+    pca_variance = export_pca_results()
+    print("\nVariância explicada por componente (PCA):")
+    print(pca_variance)
+
+    export_kernel_pca_results()
+    print("\nResultados e gráfico do Kernel PCA exportados.")
 
     export_tsne_results(
         x=X,

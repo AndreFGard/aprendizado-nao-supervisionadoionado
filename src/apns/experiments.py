@@ -1,3 +1,4 @@
+import dataclasses
 import json
 from pathlib import Path
 
@@ -11,7 +12,9 @@ from apns.models import (
     dbscan,
     hierarchical,
     kernel_fuzzy_kmeans,
+    kernel_pca,
     kmedoids,
+    pca,
     treinable_model,
     tsne,
     umap,
@@ -105,7 +108,64 @@ def evaluate_kmeanslike_model(
     return pd.DataFrame(results)
 
 
+@dataclasses.dataclass
+class PCAResult:
+    embedding: np.ndarray
+    variance: pd.DataFrame
+    components: pd.DataFrame
 
+
+def evaluate_pca_model(x: pd.DataFrame) -> PCAResult:
+    model = pca.PCA.create()
+    embedding = model.fit_transform(x)
+    ratios = model.explained_variance_ratio_
+    component_names = [f"PC{i}" for i in range(1, len(ratios) + 1)]
+
+    variance = pd.DataFrame(
+        {
+            "component": range(1, len(ratios) + 1),
+            "eigenvalue": model.explained_variance_,
+            "explained_variance_ratio": ratios,
+            "cumulative_ratio": np.cumsum(ratios),
+        }
+    )
+    components = pd.DataFrame(model.components_, columns=x.columns)
+    components.insert(0, "component", component_names)
+
+    return PCAResult(
+        embedding=embedding,
+        variance=variance,
+        components=components,
+    )
+
+
+@dataclasses.dataclass
+class KernelPCAResult:
+    embedding: np.ndarray
+    variance: pd.DataFrame
+
+
+def evaluate_kernel_pca_model(
+    x: pd.DataFrame,
+    kernel: str = "rbf",
+) -> KernelPCAResult:
+    model = kernel_pca.KernelPCA.create(kernel=kernel)
+    embedding = model.fit_transform(x)
+    eigenvalues = model.eigenvalues_
+    ratios = eigenvalues / eigenvalues.sum()
+
+    variance = pd.DataFrame(
+        {
+            "component": range(1, len(eigenvalues) + 1),
+            "kernel": kernel,
+            # default gamma
+            "gamma*": model.gamma_,
+            "eigenvalue": eigenvalues,
+            "explained_variance_ratio": ratios,
+            "cumulative_ratio": np.cumsum(ratios),
+        }
+    )
+    return KernelPCAResult(embedding=embedding, variance=variance)
 
 
 def evaluate_kernel_fuzzy_kmeans_model(
