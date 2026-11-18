@@ -18,6 +18,7 @@ from apns.models import (
 )
 from apns.visualization import (
     plot_cluster_assignments,
+    plot_dbscan_eps_comparison,
     plot_dbscan_metrics,
     plot_hierarchical_dendrogram,
     plot_kmedoids_inertia,
@@ -37,12 +38,13 @@ def _prepare_results_directories(
     results_dir: Path | None,
 ) -> tuple[Path, Path]:
     if results_dir is None:
-        results_dir = Path(__file__).resolve().parents[2] / "results"
+        report_dir = Path(__file__).resolve().parents[2] / "report"
+        tables_dir = report_dir / "tables"
+        figures_dir = report_dir / "imagens"
     else:
         results_dir = Path(results_dir)
-
-    tables_dir = results_dir / "tables"
-    figures_dir = results_dir / "figures"
+        tables_dir = results_dir / "tables"
+        figures_dir = results_dir / "imagens"
     tables_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
     return tables_dir, figures_dir
@@ -95,7 +97,7 @@ def evaluate_kmeanslike_model(
                     "iter": iteration,
                     "k": k,
                     "silhouette": silhouette,
-                    "rand_score": metrics.calcular_ari(y, clusters),
+                    "ari": metrics.calcular_ari(y, clusters),
                 }
             )
     return pd.DataFrame(results)
@@ -141,7 +143,7 @@ def evaluate_kernel_fuzzy_kmeans_model(
                             "sigma2": model.sigma2,
                             "n_init": n_init,
                             "silhouette": metrics.calcular_silhueta(x, clusters),
-                            "rand_score": metrics.calcular_ari(y, clusters),
+                            "ari": metrics.calcular_ari(y, clusters),
                             "objective": model.objective_,
                             "n_iter": model.n_iter_,
                         }
@@ -212,6 +214,83 @@ def export_kernel_fuzzy_kmeans_results(
         figures_dir / "kernel_fuzzy_kmeans_memberships.png",
     )
 
+    k3_ari_result = (
+        results.loc[results["k"] == 3]
+        .sort_values("ari", ascending=False)
+        .iloc[0]
+    )
+    k3_sigma2 = k3_ari_result["sigma2"]
+    if pd.isna(k3_sigma2):
+        k3_sigma2 = None
+    k3_model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
+        n_clusters=3,
+        random_state=int(k3_ari_result["iter"]),
+        m=float(k3_ari_result["m"]),
+        sigma2=k3_sigma2,
+        n_init=n_init,
+        max_iter=model_max_iter,
+        tol=tol,
+    )
+    k3_model.fit(x)
+
+    cluster_species = (
+        pd.DataFrame({"cluster": k3_model.labels_, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    k3_cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
+
+    k3_clusters_fig = plot_cluster_assignments(
+        x,
+        k3_model.labels_,
+        "Kernel Fuzzy K-Means (k = 3): melhor ARI",
+        x_column="petal_length",
+        y_column="petal_width",
+        cluster_names=k3_cluster_names,
+    )
+    _save_figure(
+        k3_clusters_fig,
+        figures_dir / "kernel_fuzzy_kmeans_k3_ari_clusters.png",
+    )
+
+    k3_membership_fig = plot_membership_degrees(
+        k3_model.membership_,
+        cluster_names=k3_cluster_names,
+        title="Kernel Fuzzy K-Means (k = 3): graus de pertinência",
+    )
+    _save_figure(
+        k3_membership_fig,
+        figures_dir / "kernel_fuzzy_kmeans_k3_ari_memberships.png",
+    )
+
+    contingency = (
+        pd.crosstab(
+            pd.Series(y.to_numpy(), name="species"),
+            pd.Series(k3_model.labels_, name="cluster"),
+        )
+        .rename(index=species_names)
+        .rename(columns=k3_cluster_names)
+    )
+    contingency.to_csv(tables_dir / "kernel_fuzzy_kmeans_k3_ari_contingency.csv")
+
+    membership_table = pd.DataFrame(
+        k3_model.membership_,
+        columns=[k3_cluster_names[cluster] for cluster in range(3)],
+    )
+    membership_table.insert(0, "sample", range(len(membership_table)))
+    membership_table.to_csv(
+        tables_dir / "kernel_fuzzy_kmeans_k3_ari_membership.csv",
+        index=False,
+    )
+
     objective_fig = plot_objective_convergence(model.objective_history_)
     _save_figure(
         objective_fig,
@@ -239,7 +318,7 @@ def evaluate_hierarchical_model(
                     "k": k,
                     "linkage": "centroid",
                     "silhouette": metrics.calcular_silhueta(x, clusters),
-                    "rand_score": metrics.calcular_ari(y, clusters),
+                    "ari": metrics.calcular_ari(y, clusters),
                 }
             )
     return pd.DataFrame(results)
@@ -263,11 +342,47 @@ def export_hierarchical_results(
 
     _save_table(results, tables_dir, "hierarchical_metrics.csv")
 
-    model = hierarchical.HierarchicalCentroid.create(
-        n_clusters=2,
-    )
+    model = hierarchical.HierarchicalCentroid.create(n_clusters=3)
     model.fit(x)
-    dendrogram_fig = plot_hierarchical_dendrogram(model.linkage_matrix_)
+
+    k3_labels = model.get_clusters(k=3)
+    cluster_species = (
+        pd.DataFrame({"cluster": k3_labels, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    k3_cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
+    k3_clusters_fig = plot_cluster_assignments(
+        x,
+        k3_labels,
+        "Centroid Linkage (k = 3): agrupamento no plano das pétalas",
+        x_column="petal_length",
+        y_column="petal_width",
+        cluster_names=k3_cluster_names,
+    )
+    _save_figure(
+        k3_clusters_fig,
+        figures_dir / "hierarchical_k3_petal_clusters.png",
+    )
+
+    cut_height = (
+        model.linkage_matrix_[len(x) - 3 - 1, 2]
+        + model.linkage_matrix_[len(x) - 3, 2]
+    ) / 2
+    dendrogram_fig = plot_hierarchical_dendrogram(
+        model.linkage_matrix_,
+        truncate_p=30,
+        cut_height=cut_height,
+        title="Centroid Linkage: dendrograma truncado",
+    )
     _save_figure(dendrogram_fig, figures_dir / "hierarchical_dendrogram.png")
 
     return results
@@ -305,7 +420,7 @@ def evaluate_kmedoids_model(
                             metric=metric_value,
                         ),
                         "inertia": model.inertia_,
-                        "rand_score": metrics.calcular_ari(y, clusters),
+                        "ari": metrics.calcular_ari(y, clusters),
                         "labels": json.dumps(clusters.tolist()),
                     }
                 )
@@ -367,11 +482,37 @@ def export_kmedoids_results(
     _save_figure(silhouette_fig, figures_dir / "kmedoids_silhouette.png")
     inertia_fig = plot_kmedoids_inertia(results)
     _save_figure(inertia_fig, figures_dir / "kmedoids_inertia.png")
-    kmedoids_labels = json.loads(best_configuration.iloc[0]["labels"])
+
+    k3_result = best_by_k.loc[best_by_k["k"] == 3].iloc[0]
+    kmedoids_model = kmedoids.KMedoids.create(
+        n_clusters=3,
+        metric=metric if isinstance(metric, str) else str(metric[0]),
+        random_state=int(k3_result["iter"]),
+    )
+    kmedoids_model.fit(x)
+    kmedoids_labels = kmedoids_model.predict(x)
+    cluster_species = (
+        pd.DataFrame({"cluster": kmedoids_labels, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
     clusters_fig = plot_cluster_assignments(
         x,
         kmedoids_labels,
-        "K-Medoids: melhor agrupamento por silhueta",
+        "K-Medoids (k = 3): agrupamento no plano das pétalas",
+        x_column="petal_length",
+        y_column="petal_width",
+        medoid_indices=kmedoids_model.medoid_indices_,
+        cluster_names=cluster_names,
     )
     _save_figure(clusters_fig, figures_dir / "kmedoids_clusters.png")
 
@@ -413,8 +554,9 @@ def evaluate_dbscan_model(
                 "distance": distance,
                 "n_clusters": n_clusters,
                 "n_ruido": n_ruido,
+                "cobertura": 100 * (len(clusters) - n_ruido) / len(clusters),
                 "silhouette": silhouete,
-                "rand_score": metrics.calcular_ari(
+                "ari": metrics.calcular_ari(
                     y.loc[pontos_validos],
                     clusters[pontos_validos],
                 ),
@@ -451,12 +593,26 @@ def export_dbscan_results(
     _save_table(all_results, tables_dir, "dbscan_metrics.csv")
     _save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
     _save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
+    _save_figure(plots.coverage_fig, figures_dir / "dbscan_coverage.png")
 
+    eligible = all_results[
+        all_results["n_ruido"].le(10)
+        & all_results["silhouette"].notna()
+    ]
+    if eligible.empty:
+        raise ValueError(
+            "Nenhuma configuração do DBSCAN possui silhueta válida "
+            "com no máximo 10 observações de ruído"
+        )
+    selected_row = eligible.sort_values(
+        ["silhouette", "eps", "minpts"],
+        ascending=[False, True, True],
+    ).iloc[0]
     selected_result = evaluate_dbscan_model(
         x=x,
         y=y,
-        eps=0.6,
-        minpts=5,
+        eps=float(selected_row["eps"]),
+        minpts=int(selected_row["minpts"]),
         distance=distance,
     )
     _save_table(
@@ -473,6 +629,42 @@ def export_dbscan_results(
     _save_figure(
         selected_clusters_fig,
         figures_dir / "dbscan_clusters.png",
+    )
+
+    petal_model = dbscan.DBSCAN.create(
+        eps=0.4,
+        minpts=3,
+        distance=distance,
+    )
+    petal_labels = petal_model.fit_predict(x)
+    petal_clusters_fig = plot_cluster_assignments(
+        x,
+        petal_labels,
+        "DBSCAN: eps = 0,4 e minpts = 3",
+        x_column="petal_length",
+        y_column="petal_width",
+    )
+    _save_figure(
+        petal_clusters_fig,
+        figures_dir / "dbscan_eps04_minpts3_petals.png",
+    )
+
+    def dbscan_factory(*, eps: float, minpts: int):
+        return dbscan.DBSCAN.create(
+            eps=eps,
+            minpts=minpts,
+            distance=distance,
+        )
+
+    eps_comparison_fig = plot_dbscan_eps_comparison(
+        x=x,
+        eps_values=(0.4, 1.0),
+        minpts=5,
+        model_factory=dbscan_factory,
+    )
+    _save_figure(
+        eps_comparison_fig,
+        figures_dir / "dbscan_eps04_eps10_comparison.png",
     )
 
     return all_results
@@ -705,7 +897,7 @@ def comparar_algoritmos_por_silhueta(
                 "algorithm": nome,
                 "n_clusters": melhor.get("k", melhor.get("n_clusters")),
                 "silhouette": melhor["silhouette"],
-                "rand_score": melhor["rand_score"],
+                "ari": melhor["ari"],
                 "metric": melhor.get("metric"),
                 "linkage": melhor.get("linkage"),
                 "m": melhor.get("m"),

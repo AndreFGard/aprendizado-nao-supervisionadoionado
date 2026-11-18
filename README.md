@@ -36,7 +36,9 @@ aprendizado-nao-supervisionado/
 ├── data/           # Dados locais ou instruções para obtê-los
 ├── notebooks/      # Exploração e experimentos em Jupyter
 ├── src/apns/       # Pacote Python reutilizável
-├── results/        # Tabelas, gráficos e resultados exportados
+├── report/
+│   ├── tables/    # Tabelas exportadas
+│   └── imagens/   # Figuras exportadas
 ├── docs/           # Decisões metodológicas e documentação
 ├── pyproject.toml  # Metadados e dependências do projeto
 ├── .python-version
