@@ -43,14 +43,14 @@
 
   #figure(
     image("../imagens/kmedoids_clusters.png", width: 100%),
-    caption: [Agrupamento por K-Medoids com $k = 3$, projetado em `petal_length` × `petal_width`; os marcadores em formato `X` representam os medóides.],
+    caption: [Agrupamento por K-Medoids com $k = 3$, projetado em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo e os marcadores em formato `X` representam os medóides.],
   ) <fig:kmed-clusters>
 
   Para $k = 3$, a _setosa_ permanece isolada (50/50). Dos 50 exemplares de _versicolor_, 37 ficam em um agrupamento e 13 migram para o agrupamento dominado por _virginica_, que contém 48 das 50 _virginica_, e 2 _virginica_ são atribuídas ao agrupamento de _versicolor_. No total, 15 das 150 observações (10%) são alocadas fora do agrupamento majoritário de sua espécie, e os tamanhos dos agrupamentos são 39, 50 e 61. A @fig:kmed-clusters apresenta essa configuração projetada em comprimento e largura das pétalas. Os medóides têm coordenadas (5,7; 2,8; 4,1; 1,3), (5,0; 3,4; 1,5; 0,2) e (6,5; 3,0; 5,2; 2,0), nesta ordem: sepal_length, sepal_width, petal_length e petal_width. A queda da silhueta para 0,529 é explicada pela fronteira difusa entre _versicolor_ e _virginica_. A silhueta média por agrupamento é de aproximadamente 0,79 para o grupo da _setosa_, contra 0,50 e 0,34 para os outros dois. Esse resultado é compatível com o fato de o K-Medoids, por favorecer grupos compactos, não distinguir adequadamente objetos em regiões de fronteira.
 
   Com $k = 4$ e $k = 5$, os agrupamentos adicionais subdividem a região de _versicolor_ e _virginica_ sem corresponder a novas espécies, o que reduz a silhueta e, em relação a $k = 3$, não melhora a concordância com as espécies. Em $k = 5$, por exemplo, surge um agrupamento de apenas 13 observações, com _versicolor_ e _virginica_ fragmentadas em vários grupos.
 
-  Os resultados evidenciam uma divergência entre os critérios. A silhueta, por ser uma métrica interna que avalia coesão e separação geométrica sem conhecer as espécies, favorece $k = 2$. O ARI e o cotovelo da inércia apontam $k = 3$, que coincide com o número real de espécies. Assim, $k = 2$ é a melhor escolha do ponto de vista da separação geométrica, enquanto $k = 3$ oferece o melhor compromisso entre compacidade e correspondência com as espécies, com 0,744 de ARI e silhueta ainda moderada (0,529). Por fim, como os atributos foram usados sem normalização e com distância city-block, atributos de maior amplitude têm maior peso no cálculo das dissimilaridades, o que pode influenciar as partições obtidas.
+  Os resultados evidenciam uma divergência entre os critérios. A silhueta, por ser uma métrica interna que avalia coesão e separação geométrica sem conhecer as espécies, favorece $k = 2$. O ARI e o cotovelo da inércia apontam $k = 3$, que coincide com o número real de espécies. Assim, $k = 2$ é a melhor escolha do ponto de vista da separação geométrica, enquanto $k = 3$ oferece o melhor compromisso com a correspondência das espécies, com 0,744 de ARI e silhueta ainda moderada (0,529). Por fim, como os atributos foram usados sem normalização e com distância city-block, atributos de maior amplitude têm maior peso no cálculo das dissimilaridades, o que pode influenciar as partições obtidas.
 
   == Fuzzy K-Means
 
@@ -63,4 +63,3 @@
   == DBSCAN
 
 ]
-

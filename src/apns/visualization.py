@@ -82,6 +82,7 @@ def plot_cluster_assignments(
     x_column: str | None = None,
     y_column: str | None = None,
     medoid_indices: np.ndarray | None = None,
+    cluster_names: dict[int, str] | None = None,
 ) -> Figure:
     figure, axis = plt.subplots(figsize=(8, 5))
     x_column = x_column or x.columns[0]
@@ -90,13 +91,18 @@ def plot_cluster_assignments(
 
     for cluster in np.unique(cluster_labels):
         cluster_points = cluster_labels == cluster
+        cluster_name = (
+            cluster_names.get(int(cluster), f"Cluster {cluster}")
+            if cluster_names is not None
+            else f"Cluster {cluster}"
+        )
         axis.scatter(
             x.loc[cluster_points, x_column],
             x.loc[cluster_points, y_column],
             c=[plt.get_cmap("tab10")(cluster % 10)],
             edgecolors="black",
             linewidths=0.3,
-            label=f"Cluster {cluster}",
+            label=cluster_name,
         )
 
     if medoid_indices is not None:

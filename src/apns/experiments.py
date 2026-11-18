@@ -376,6 +376,20 @@ def export_kmedoids_results(
     )
     kmedoids_model.fit(x)
     kmedoids_labels = kmedoids_model.predict(x)
+    cluster_species = (
+        pd.DataFrame({"cluster": kmedoids_labels, "species": y.to_numpy()})
+        .groupby("cluster")["species"]
+        .agg(lambda values: values.mode().iloc[0])
+    )
+    species_names = {
+        "Iris-setosa": "Setosa",
+        "Iris-versicolor": "Versicolor",
+        "Iris-virginica": "Virginica",
+    }
+    cluster_names = {
+        int(cluster): species_names[str(species)]
+        for cluster, species in cluster_species.items()
+    }
     clusters_fig = plot_cluster_assignments(
         x,
         kmedoids_labels,
@@ -383,6 +397,7 @@ def export_kmedoids_results(
         x_column="petal_length",
         y_column="petal_width",
         medoid_indices=kmedoids_model.medoid_indices_,
+        cluster_names=cluster_names,
     )
     _save_figure(clusters_fig, figures_dir / "kmedoids_clusters.png")
 
