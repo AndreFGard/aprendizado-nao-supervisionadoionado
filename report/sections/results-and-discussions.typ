@@ -178,6 +178,88 @@
   
   == DBSCAN
 
+  Foram avaliadas 40 configurações (oito valores de `eps` e cinco de `minpts`). Em 35 delas foram identificados pelo menos dois agrupamentos. Nas cinco restantes, não há silhueta válida nem ARI interpretável: três configurações classificaram todas as observações como ruído e duas formaram um único agrupamento. Nessas configurações, o ARI foi registrado como `NaN`, em vez de 1,0.
+
+  A @fig:dbscan-ruido mostra que o ruído diminui com o aumento de `eps` e aumenta com `minpts`. Com `eps` = 0,2, entre 115 e 150 observações são ruído; com `eps` = 1,0, a quantidade cai para entre zero e duas observações, conforme `minpts`. A @fig:dbscan-cobertura resume essa mesma relação pela porcentagem da base não descartada.
+
+  #figure(
+    image("../imagens/dbscan_noise.png", width: 100%),
+    caption: [DBSCAN: pontos de ruído em função de `eps`, para cada valor de `minpts`.],
+  ) <fig:dbscan-ruido>
+
+  #figure(
+    image("../imagens/dbscan_coverage.png", width: 100%),
+    caption: [DBSCAN: cobertura da base em função de `eps`, para cada valor de `minpts`.],
+  ) <fig:dbscan-cobertura>
+
+  A silhueta (@fig:dbscan-sil) não varia monotonicamente com `eps`. Os maiores valores aparecem com `eps` pequeno, mas acompanham descarte elevado da base: a configuração `eps` = 0,3 e `minpts` = 7 atinge silhueta 0,846 descartando 72% das observações. Para `eps` ≥ 0,7, os valores convergem entre 0,68 e 0,73. Como silhueta e ARI excluem o ruído, devem ser interpretados junto com a cobertura.
+
+  #figure(
+    image("../imagens/dbscan_silhouette.png", width: 100%),
+    caption: [DBSCAN: silhueta em função de `eps`, para cada valor de `minpts`. Configurações com menos de dois agrupamentos não aparecem.],
+  ) <fig:dbscan-sil>
+
+  A @tab:dbscan reúne configurações representativas. Nas duas configurações de alto ARI e elevado ruído (`eps` = 0,3 / `minpts` = 7 e `eps` = 0,5 / `minpts` = 15), o valor 1,0 reflete apenas a concordância entre espécies dentro dos poucos pontos não descartados. Em uma análise auxiliar que trata o ruído como um grupo adicional, esses ARI seriam cerca de 0,25 e 0,50, respectivamente.
+
+  #figure(
+    table(
+      columns: 6,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*`eps`*], [*`minpts`*], [*Grupos*], [*Ruído*], [*Silhouette*], [*ARI*]),
+      table.hline(),
+      [0,3], [7], [2], [108 (72,0%)], [0,846], [1,000],
+      [0,4], [3], [4], [22 (14,7%)], [0,474], [0,890],
+      [0,5], [15], [2], [86 (57,3%)], [0,813], [1,000],
+      [0,6], [5], [2], [9 (6,0%)], [0,723], [0,584],
+      [1,0], [5], [2], [0 (0,0%)], [0,686], [0,568],
+      table.hline(),
+    ),
+    caption: [Configurações representativas. Silhueta e ARI calculados sem as observações de ruído.],
+    kind: table,
+  ) <tab:dbscan>
+
+  A configuração visualizada (@fig:dbscan-clusters), `eps` = 0,6 e `minpts` = 5, foi escolhida pela maior silhueta entre aquelas com no máximo 10 pontos de ruído. Com silhueta 0,723, 9 pontos de ruído (6%) e ARI 0,584, ela separa a _setosa_ das demais espécies, mas funde _versicolor_ e _virginica_ em um único agrupamento.
+
+  #figure(
+    image("../imagens/dbscan_clusters.png", width: 100%),
+    caption: [DBSCAN com `eps` = 0,6 e `minpts` = 5, projetado em `sepal_length` e `sepal_width`. O rótulo −1 indica ruído.],
+  ) <fig:dbscan-clusters>
+
+  Com `eps` = 0,4 e `minpts` = 3, o DBSCAN forma quatro agrupamentos, descarta 22 observações (14,7%) e alcança o maior ARI entre configurações com até 15% de ruído: 0,890, com silhueta 0,474. Conforme a @tab:dbscan-cont, três grupos correspondem majoritariamente às espécies, enquanto um quarto agrupa poucos pontos de _versicolor_. A @fig:dbscan-petalas mostra essa fragmentação no plano das pétalas.
+
+  #figure(
+    table(
+      columns: 6,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*Espécie*], [*Ruído*], [*G0*], [*G1*], [*G2*], [*G3*]),
+      table.hline(),
+      [_Setosa_], [3], [47], [0], [0], [0],
+      [_Versicolor_], [4], [0], [39], [4], [3],
+      [_Virginica_], [15], [0], [0], [0], [35],
+      table.hline(),
+    ),
+    caption: [`eps` = 0,4 e `minpts` = 3: contingência entre espécies e grupos.],
+    kind: table,
+  ) <tab:dbscan-cont>
+
+  #figure(
+    image("../imagens/dbscan_eps04_minpts3_petals.png", width: 100%),
+    caption: [DBSCAN com `eps` = 0,4 e `minpts` = 3 no plano das pétalas.],
+  ) <fig:dbscan-petalas>
+
+  A @fig:dbscan-eps-comparacao ilustra a sensibilidade a `eps`: com 0,4 há segmentação mais fragmentada; com 1,0, as espécies adjacentes são fundidas e não há ruído.
+
+  #figure(
+    image("../imagens/dbscan_eps04_eps10_comparison.png", width: 100%),
+    caption: [DBSCAN no plano das pétalas: comparação entre `eps` = 0,4 e `eps` = 1,0, com `minpts` = 5.],
+  ) <fig:dbscan-eps-comparacao>
+
+  Em resumo, valores pequenos de `eps` fragmentam os dados e geram ruído; valores grandes eliminam o ruído, mas fundem _versicolor_ e _virginica_. Nenhuma configuração com ruído baixo e silhueta elevada recupera as três espécies. Assim, a melhor separação das espécies coexiste com maior descarte de observações ou com fragmentação adicional, evidenciando a dificuldade de aplicar um único raio a grupos de densidades distintas.
+
   == PCA
 
   == Kernel PCA
