@@ -95,7 +95,7 @@ def evaluate_kmeanslike_model(
                     "iter": iteration,
                     "k": k,
                     "silhouette": silhouette,
-                    "rand_score": metrics.calcular_ari(y, clusters),
+                    "ari": metrics.calcular_ari(y, clusters),
                 }
             )
     return pd.DataFrame(results)
@@ -141,7 +141,7 @@ def evaluate_kernel_fuzzy_kmeans_model(
                             "sigma2": model.sigma2,
                             "n_init": n_init,
                             "silhouette": metrics.calcular_silhueta(x, clusters),
-                            "rand_score": metrics.calcular_ari(y, clusters),
+                            "ari": metrics.calcular_ari(y, clusters),
                             "objective": model.objective_,
                             "n_iter": model.n_iter_,
                         }
@@ -239,7 +239,7 @@ def evaluate_hierarchical_model(
                     "k": k,
                     "linkage": "centroid",
                     "silhouette": metrics.calcular_silhueta(x, clusters),
-                    "rand_score": metrics.calcular_ari(y, clusters),
+                    "ari": metrics.calcular_ari(y, clusters),
                 }
             )
     return pd.DataFrame(results)
@@ -305,7 +305,7 @@ def evaluate_kmedoids_model(
                             metric=metric_value,
                         ),
                         "inertia": model.inertia_,
-                        "rand_score": metrics.calcular_ari(y, clusters),
+                        "ari": metrics.calcular_ari(y, clusters),
                         "labels": json.dumps(clusters.tolist()),
                     }
                 )
@@ -414,7 +414,7 @@ def evaluate_dbscan_model(
                 "n_clusters": n_clusters,
                 "n_ruido": n_ruido,
                 "silhouette": silhouete,
-                "rand_score": metrics.calcular_ari(
+                "ari": metrics.calcular_ari(
                     y.loc[pontos_validos],
                     clusters[pontos_validos],
                 ),
@@ -705,7 +705,7 @@ def comparar_algoritmos_por_silhueta(
                 "algorithm": nome,
                 "n_clusters": melhor.get("k", melhor.get("n_clusters")),
                 "silhouette": melhor["silhouette"],
-                "rand_score": melhor["rand_score"],
+                "ari": melhor["ari"],
                 "metric": melhor.get("metric"),
                 "linkage": melhor.get("linkage"),
                 "m": melhor.get("m"),

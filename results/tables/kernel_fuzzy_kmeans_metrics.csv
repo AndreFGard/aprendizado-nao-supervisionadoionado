@@ -1,4 +1,4 @@
-model_name,iter,k,m,sigma2,n_init,silhouette,rand_score,objective,n_iter
+model_name,iter,k,m,sigma2,n_init,silhouette,ari,objective,n_iter
 KernelFuzzyKMeans,0,2,1.5,,5,0.68548158489118,0.5583714437541352,27.720403698183116,8
 KernelFuzzyKMeans,1,2,1.5,,5,0.68548158489118,0.5583714437541352,27.720403698183116,8
 KernelFuzzyKMeans,2,2,1.5,,5,0.68548158489118,0.5583714437541352,27.720403707440106,9

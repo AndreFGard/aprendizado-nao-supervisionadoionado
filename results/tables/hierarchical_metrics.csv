@@ -1,4 +1,4 @@
-model_name,iter,k,linkage,silhouette,rand_score
+model_name,iter,k,linkage,silhouette,ari
 HierarchicalCentroid,0,2,centroid,0.6863930543445408,0.5681159420289855
 HierarchicalCentroid,1,2,centroid,0.6863930543445408,0.5681159420289855
 HierarchicalCentroid,2,2,centroid,0.6863930543445408,0.5681159420289855
