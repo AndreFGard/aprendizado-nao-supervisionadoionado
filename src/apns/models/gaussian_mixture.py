@@ -7,7 +7,7 @@ import sklearn.mixture
 from apns.models import treinable_model
 
 
-class GaussianMixture(treinable_model.ITrainableModel):
+class GaussianMixture(treinable_model.IKMeansLikeModel):
     """Mistura gaussiana (EM) com partição crisp pela posterior máxima."""
 
     objective_name = "-log-likelihood"
@@ -46,4 +46,3 @@ class GaussianMixture(treinable_model.ITrainableModel):
     @property
     def n_iter(self) -> int:
         return int(self._model.n_iter_)
-

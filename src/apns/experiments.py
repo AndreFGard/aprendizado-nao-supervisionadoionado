@@ -24,7 +24,6 @@ from apns.visualization import (
     plot_kmedoids_silhouette,
     plot_membership_degrees,
     plot_objective_convergence,
-    plot_silhouette_by_k,
     plot_tsne_embedding,
     plot_tsne_embeddings_comparison,
     plot_tsne_perplexity_comparison,
@@ -34,7 +33,7 @@ from apns.visualization import (
 )
 
 
-def _prepare_results_directories(
+def prepare_results_directories(
     results_dir: Path | None,
 ) -> tuple[Path, Path]:
     if results_dir is None:
@@ -49,12 +48,12 @@ def _prepare_results_directories(
     return tables_dir, figures_dir
 
 
-def _save_figure(figure: Figure, path: Path) -> None:
+def save_figure(figure: Figure, path: Path) -> None:
     figure.savefig(path)
     plt.close(figure)
 
 
-def _save_table(
+def save_table(
     results: pd.DataFrame,
     tables_dir: Path,
     filename: str,
@@ -62,7 +61,7 @@ def _save_table(
     results.to_csv(tables_dir / filename, index=False)
 
 
-def _select_best_row(
+def select_best_row(
     results: pd.DataFrame,
     metric: str,
     fallback_metric: str | None = None,
@@ -79,7 +78,7 @@ def _select_best_row(
 def evaluate_kmeanslike_model(
     x: pd.DataFrame,
     y: pd.Series,
-    model_cls: type[treinable_model.IPredictiveModel],
+    model_cls: type[treinable_model.IKMeansLikeModel],
     max_n_cluster: int = 5,
     max_iter: int = 10,
 ) -> pd.DataFrame:
@@ -106,26 +105,7 @@ def evaluate_kmeanslike_model(
     return pd.DataFrame(results)
 
 
-def export_kmeanslike_model(
-    rows: pd.DataFrame,
-    prefix: str,
-    name: str,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Best model per k, minimizing objective, and export the silhouette plot and tables"""
-    best = (
-        rows.loc[rows.groupby("k")["objective"].idxmin()]
-        .sort_values("k")
-        .reset_index(drop=True)
-    )
 
-    tables_dir, figures_dir = _prepare_results_directories(None)
-    _save_table(rows, tables_dir, f"{prefix}_metrics.csv")
-    _save_table(best, tables_dir, f"{prefix}_best_by_k.csv")
-    _save_figure(
-        plot_silhouette_by_k(best, name),
-        figures_dir / f"{prefix}_silhouette.png",
-    )
-    return rows, best
 
 
 def evaluate_kernel_fuzzy_kmeans_model(
@@ -204,11 +184,11 @@ def export_kernel_fuzzy_kmeans_results(
         sigma2_values=sigma2_values,
     )
 
-    tables_dir, figures_dir = _prepare_results_directories(results_dir)
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
 
-    _save_table(results, tables_dir, "kernel_fuzzy_kmeans_metrics.csv")
+    save_table(results, tables_dir, "kernel_fuzzy_kmeans_metrics.csv")
 
-    best_result = _select_best_row(
+    best_result = select_best_row(
         results,
         metric="silhouette",
         fallback_metric="objective",
@@ -228,19 +208,19 @@ def export_kernel_fuzzy_kmeans_results(
         model.labels_,
         "Kernel Fuzzy K-Means: melhor agrupamento",
     )
-    _save_figure(
+    save_figure(
         clusters_fig,
         figures_dir / "kernel_fuzzy_kmeans_clusters.png",
     )
 
     membership_fig = plot_membership_degrees(model.membership_)
-    _save_figure(
+    save_figure(
         membership_fig,
         figures_dir / "kernel_fuzzy_kmeans_memberships.png",
     )
 
     objective_fig = plot_objective_convergence(model.objective_history_)
-    _save_figure(
+    save_figure(
         objective_fig,
         figures_dir / "kernel_fuzzy_kmeans_objective_convergence.png",
     )
@@ -286,16 +266,16 @@ def export_hierarchical_results(
         max_iter=max_iter,
     )
 
-    tables_dir, figures_dir = _prepare_results_directories(results_dir)
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
 
-    _save_table(results, tables_dir, "hierarchical_metrics.csv")
+    save_table(results, tables_dir, "hierarchical_metrics.csv")
 
     model = hierarchical.HierarchicalCentroid.create(
         n_clusters=2,
     )
     model.fit(x)
     dendrogram_fig = plot_hierarchical_dendrogram(model.linkage_matrix_)
-    _save_figure(dendrogram_fig, figures_dir / "hierarchical_dendrogram.png")
+    save_figure(dendrogram_fig, figures_dir / "hierarchical_dendrogram.png")
 
     return results
 
@@ -358,7 +338,7 @@ def select_best_kmedoids_by_k(results: pd.DataFrame) -> pd.DataFrame:
 
 
 def select_best_kmedoids_configuration(results: pd.DataFrame) -> pd.DataFrame:
-    best_result = _select_best_row(results, metric="silhouette")
+    best_result = select_best_row(results, metric="silhouette")
     return results.loc[[best_result.name]].reset_index(drop=True)
 
 
@@ -378,29 +358,29 @@ def export_kmedoids_results(
         max_iter=max_iter,
     )
 
-    tables_dir, figures_dir = _prepare_results_directories(results_dir)
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
 
-    _save_table(results, tables_dir, "kmedoids_metrics.csv")
+    save_table(results, tables_dir, "kmedoids_metrics.csv")
     best_by_k = select_best_kmedoids_by_k(results)
     best_configuration = select_best_kmedoids_configuration(results)
-    _save_table(best_by_k, tables_dir, "kmedoids_best_by_k.csv")
-    _save_table(
+    save_table(best_by_k, tables_dir, "kmedoids_best_by_k.csv")
+    save_table(
         best_configuration,
         tables_dir,
         "kmedoids_best_configuration.csv",
     )
 
     silhouette_fig = plot_kmedoids_silhouette(results)
-    _save_figure(silhouette_fig, figures_dir / "kmedoids_silhouette.png")
+    save_figure(silhouette_fig, figures_dir / "kmedoids_silhouette.png")
     inertia_fig = plot_kmedoids_inertia(results)
-    _save_figure(inertia_fig, figures_dir / "kmedoids_inertia.png")
+    save_figure(inertia_fig, figures_dir / "kmedoids_inertia.png")
     kmedoids_labels = json.loads(best_configuration.iloc[0]["labels"])
     clusters_fig = plot_cluster_assignments(
         x,
         kmedoids_labels,
         "K-Medoids: melhor agrupamento por silhueta",
     )
-    _save_figure(clusters_fig, figures_dir / "kmedoids_clusters.png")
+    save_figure(clusters_fig, figures_dir / "kmedoids_clusters.png")
 
     return results
 
@@ -472,12 +452,12 @@ def export_dbscan_results(
     ]
     all_results = pd.concat(results, ignore_index=True)
 
-    tables_dir, figures_dir = _prepare_results_directories(results_dir)
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
 
     plots = plot_dbscan_metrics(all_results)
-    _save_table(all_results, tables_dir, "dbscan_metrics.csv")
-    _save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
-    _save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
+    save_table(all_results, tables_dir, "dbscan_metrics.csv")
+    save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
+    save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
 
     selected_result = evaluate_dbscan_model(
         x=x,
@@ -486,7 +466,7 @@ def export_dbscan_results(
         minpts=5,
         distance=distance,
     )
-    _save_table(
+    save_table(
         selected_result,
         tables_dir,
         "dbscan_selected_configuration.csv",
@@ -497,7 +477,7 @@ def export_dbscan_results(
         selected_labels,
         "DBSCAN: agrupamento selecionado",
     )
-    _save_figure(
+    save_figure(
         selected_clusters_fig,
         figures_dir / "dbscan_clusters.png",
     )
@@ -558,7 +538,7 @@ def export_tsne_results(
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
     perplexity_values = [30.0] if perplexity_values is None else perplexity_values
-    tables_dir, figures_dir = _prepare_results_directories(results_dir)
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
     result_rows = []
 
     embeddings = {}
@@ -584,21 +564,21 @@ def export_tsne_results(
         )
 
     results = pd.DataFrame(result_rows)
-    _save_table(results, tables_dir, "tsne_metrics.csv")
+    save_table(results, tables_dir, "tsne_metrics.csv")
 
     embeddings_figure = plot_tsne_embeddings_comparison(embeddings, y)
-    _save_figure(
+    save_figure(
         embeddings_figure,
         figures_dir / "tsne_embeddings_perplexities.png",
     )
 
     perplexity_figure = plot_tsne_perplexity_comparison(results)
-    _save_figure(
+    save_figure(
         perplexity_figure,
         figures_dir / "tsne_perplexity_comparison.png",
     )
 
-    best_result = _select_best_row(results, metric="silhouette")
+    best_result = select_best_row(results, metric="silhouette")
     embedding = embeddings[float(best_result["perplexity"])]
     figure = plot_tsne_embedding(
         embedding,
@@ -608,7 +588,7 @@ def export_tsne_results(
             f"(perplexidade={best_result['perplexity']})"
         ),
     )
-    _save_figure(figure, figures_dir / "tsne_embedding.png")
+    save_figure(figure, figures_dir / "tsne_embedding.png")
 
     return results
 
@@ -663,7 +643,7 @@ def export_umap_results(
 ) -> pd.DataFrame:
     n_neighbors_values = [15] if n_neighbors_values is None else n_neighbors_values
     min_dist_values = [0.1] if min_dist_values is None else min_dist_values
-    tables_dir, figures_dir = _prepare_results_directories(results_dir)
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
     result_rows = []
     embeddings = {}
 
@@ -688,21 +668,21 @@ def export_umap_results(
             )
 
     results = pd.DataFrame(result_rows)
-    _save_table(results, tables_dir, "umap_metrics.csv")
+    save_table(results, tables_dir, "umap_metrics.csv")
 
     embeddings_figure = plot_umap_embeddings_comparison(embeddings, y)
-    _save_figure(
+    save_figure(
         embeddings_figure,
         figures_dir / "umap_embeddings_parameters.png",
     )
 
     parameter_figure = plot_umap_parameter_comparison(results)
-    _save_figure(
+    save_figure(
         parameter_figure,
         figures_dir / "umap_parameter_comparison.png",
     )
 
-    best_result = _select_best_row(results, metric="silhouette")
+    best_result = select_best_row(results, metric="silhouette")
     embedding = embeddings[
         (int(best_result["n_neighbors"]), float(best_result["min_dist"]))
     ]
@@ -715,7 +695,7 @@ def export_umap_results(
             f"min_dist={best_result['min_dist']:g})"
         ),
     )
-    _save_figure(figure, figures_dir / "umap_embedding.png")
+    save_figure(figure, figures_dir / "umap_embedding.png")
 
     return results
 
@@ -726,7 +706,7 @@ def comparar_algoritmos_por_silhueta(
     """Compara cada algoritmo pela configuração de maior silhueta."""
     comparacao = []
     for nome, resultados_modelo in resultados.items():
-        melhor = _select_best_row(resultados_modelo, metric="silhouette")
+        melhor = select_best_row(resultados_modelo, metric="silhouette")
         comparacao.append(
             {
                 "algorithm": nome,
@@ -757,8 +737,8 @@ def export_comparacao_algoritmos(
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
     """Exporta a comparação dos algoritmos para uma tabela CSV."""
-    tables_dir, _ = _prepare_results_directories(results_dir)
+    tables_dir, _ = prepare_results_directories(results_dir)
 
     comparacao = comparar_algoritmos_por_silhueta(resultados)
-    _save_table(comparacao, tables_dir, "algorithm_comparison.csv")
+    save_table(comparacao, tables_dir, "algorithm_comparison.csv")
     return comparacao

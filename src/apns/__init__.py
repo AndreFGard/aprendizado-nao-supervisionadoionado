@@ -1,10 +1,11 @@
 import dataclasses
+from pathlib import Path
 
 import pandas as pd
 
-from apns import experiments
 from apns.data import carregar_iris
 from apns.experiments import (
+    evaluate_kmeanslike_model,
     export_comparacao_algoritmos,
     export_dbscan_results,
     export_hierarchical_results,
@@ -12,17 +13,22 @@ from apns.experiments import (
     export_kmedoids_results,
     export_tsne_results,
     export_umap_results,
+    prepare_results_directories,
+    save_figure,
+    save_table,
+    select_best_row,
     test_kmedoids_model,
 )
 from apns.models import treinable_model
 from apns.models.gaussian_mixture import GaussianMixture
 from apns.models.kmeans import KMeans
 from apns.models.kmeans_fuzzy import KMeansFuzzy
+from apns.visualization import plot_silhouette_by_k
 
 
 @dataclasses.dataclass
 class KMeansLikeConfig:
-    cls: type[treinable_model.IPredictiveModel]
+    cls: type[treinable_model.IKMeansLikeModel]
     prefix: str
     pretty_name: str
 
@@ -34,21 +40,37 @@ kmeans_like_configs = [
 ]
 
 
-def compute_mine(configs: list[KMeansLikeConfig]) -> dict[str, pd.DataFrame]:
+def _best_kmeanslike_per_k(rows: pd.DataFrame) -> pd.DataFrame:
+    """Best run per k, minimizing the model objective. Pure: no I/O."""
+    return (
+        rows.loc[rows.groupby("k")["objective"].idxmin()]
+        .sort_values("k")
+        .reset_index(drop=True)
+    )
+
+
+def export_kmeans_like_results(
+    configs: list[KMeansLikeConfig],
+    results_dir: Path | None = None,
+) -> dict[str, pd.DataFrame]:
     x, y = carregar_iris()
+    tables_dir, figures_dir = prepare_results_directories(results_dir)
 
     best_by_model: dict[str, pd.DataFrame] = {}
     for config in configs:
-        rows = experiments.evaluate_kmeanslike_model(x, y, config.cls)
-        _, best = experiments.export_kmeanslike_model(
-            rows=rows,
-            prefix=config.prefix,
-            name=config.pretty_name,
+        rows = evaluate_kmeanslike_model(x, y, config.cls)
+        best = _best_kmeanslike_per_k(rows)
+
+        save_table(rows, tables_dir, f"{config.prefix}_metrics.csv")
+        save_table(best, tables_dir, f"{config.prefix}_best_by_k.csv")
+        save_figure(
+            plot_silhouette_by_k(best, config.pretty_name),
+            figures_dir / f"{config.prefix}_silhouette.png",
         )
+
         best_by_model[config.pretty_name] = best
 
-        # k1 with silhouette = nan is kept so its plotted.
-        chosen = best.loc[best["silhouette"].idxmax()]
+        chosen = select_best_row(best, metric="silhouette")
         print(
             f"{config.pretty_name}: k*={int(chosen['k'])}, "
             f"silhueta={chosen['silhouette']:.4f}, ARI={chosen['ari']:.4f}"
@@ -66,7 +88,7 @@ def main() -> None:
     print(y.value_counts().sort_index())
 
     print("\n--- Executando K-Means, Fuzzy K-Means e Misturas Gaussianas (EM) ---")
-    kmeans_like_results = compute_mine(configs=kmeans_like_configs)
+    kmeans_like_results = export_kmeans_like_results(configs=kmeans_like_configs)
 
     print(
         "\n--- Executando os algoritmos de agrupamento DBSCAN, K-Medoids, UPGMC, Kernel Fuzzy K-Means ---"

@@ -8,7 +8,7 @@ from scipy.spatial.distance import cdist
 from apns.models import treinable_model
 
 
-class KMeansFuzzy(treinable_model.ITrainableModel):
+class KMeansFuzzy(treinable_model.IKMeansLikeModel):
     objective_name = "J_m"
 
     def __init__(self, model: fcmeans.FCM):
@@ -41,7 +41,7 @@ class KMeansFuzzy(treinable_model.ITrainableModel):
 
     @property
     def _memberships(self) -> np.ndarray:
-        memberships =  self._model.u
+        memberships = self._model.u
         assert memberships is not None
         return memberships
 

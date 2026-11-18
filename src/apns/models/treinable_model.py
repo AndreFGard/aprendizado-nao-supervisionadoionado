@@ -4,11 +4,11 @@ import numpy as np
 import pandas as pd
 
 
-class ITrainableModel(Protocol):
+class ITreinableModel(Protocol):
     def fit(self, x: pd.DataFrame | np.ndarray) -> Self: ...
 
 
-class IPredictiveModel(ITrainableModel, Protocol):
+class IKMeansLikeModel(ITreinableModel, Protocol):
     objective_name: str
 
     @classmethod
@@ -24,8 +24,5 @@ class IPredictiveModel(ITrainableModel, Protocol):
         ...
 
 
-class ITransductiveModel(ITrainableModel, Protocol):
+class ITransductiveModel(ITreinableModel, Protocol):
     def fit_predict(self, x: pd.DataFrame | np.ndarray) -> np.ndarray: ...
-
-
-ITreinableModel = ITrainableModel
