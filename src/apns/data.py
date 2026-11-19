@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 
 def carregar_iris(dataset_path: str | Path | None = None):
@@ -34,6 +35,17 @@ def carregar_iris(dataset_path: str | Path | None = None):
     assert y.nunique() == 3, "Quantidade inesperada de espécies."
 
     return X, y
+
+
+def normalizar_atributos(X: pd.DataFrame) -> pd.DataFrame:
+    """Padroniza cada atributo para média zero e desvio padrão unitário."""
+
+    scaler = StandardScaler()
+    return pd.DataFrame(
+        scaler.fit_transform(X),
+        columns=X.columns,
+        index=X.index,
+    )
 
 
 if __name__ == "__main__":

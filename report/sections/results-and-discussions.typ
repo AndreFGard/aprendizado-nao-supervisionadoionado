@@ -1,6 +1,34 @@
 #let results-and-discussions = [
   = Resultados e discussões
 
+  == Efeito da padronização
+
+  A tabela abaixo compara, para cada método, a melhor silhueta encontrada nas tabelas originais e nas execuções com z-score. Para DBSCAN, K-Medoids, agrupamento hierárquico e Kernel Fuzzy K-Means, o ARI corresponde à mesma configuração que maximizou a silhueta. Para t-SNE e UMAP, a avaliação externa não se aplica; nesses casos é apresentada a trustworthiness.
+
+  #figure(
+    table(
+      columns: 5,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*Método*], [*Sil. original*], [*Sil. normalizada*], [*ARI normalizado*], [*Trust. normalizada*]),
+      table.hline(),
+      [DBSCAN], [0,846], [0,716], [0,902], [--],
+      [K-Medoids], [0,674], [0,608], [0,531], [--],
+      [Hierárquico], [0,686], [0,580], [0,568], [--],
+      [Kernel Fuzzy K-Means], [0,686], [0,580], [0,568], [--],
+      [t-SNE], [0,632], [0,508], [--], [0,990],
+      [UMAP], [0,675], [0,541], [--], [0,978],
+      table.hline(),
+    ),
+    caption: [Comparação entre as melhores configurações sem e com padronização.],
+    kind: table,
+  ) <tab:normalizacao>
+
+  A padronização reduziu a silhueta dos métodos baseados em distância e dos embeddings, mas teve efeitos distintos sobre a concordância externa. O DBSCAN foi o principal beneficiado em ARI, passando a 0,902 com `eps` = 0,6 e `minpts` = 15, enquanto K-Medoids, hierárquico e Kernel Fuzzy K-Means mantiveram ARI próximo de 0,53--0,57. Para t-SNE e UMAP, a trustworthiness permaneceu praticamente estável, sugerindo que a normalização alterou mais a separação entre espécies do que a preservação de vizinhanças. As tabelas completas das execuções normalizadas foram exportadas com o sufixo `_normalized`.
+
+  == K-Means
+
   == K-Medoids
 
   Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Para cada $k$, as sementes produziram soluções idênticas em silhueta, inércia, ARI e rótulos, portanto o experimento resulta em quatro configurações distintas. A @tab:kmedoids resume os resultados.
@@ -46,7 +74,7 @@
 
   Com $k = 4$ e $k = 5$, os grupos adicionais subdividem a região de _versicolor_ e _virginica_ sem corresponder a novas espécies. Em ambos os casos, a silhueta diminui e o ARI não supera o de $k = 3$.
 
-  Os resultados mostram uma divergência entre os critérios: a silhueta favorece $k = 2$, enquanto o ARI e o cotovelo da inércia apontam $k = 3$. Assim, $k = 2$ apresenta a melhor separação geométrica, mas $k = 3$ oferece o melhor compromisso com as espécies, com ARI de 0,744 e silhueta moderada de 0,529. Como os atributos não foram normalizados e a distância foi city-block, atributos de maior amplitude podem ter maior influência nas partições.
+  Os resultados mostram uma divergência entre os critérios: a silhueta favorece $k = 2$, enquanto o ARI e o cotovelo da inércia apontam $k = 3$. Assim, $k = 2$ apresenta a melhor separação geométrica, mas $k = 3$ oferece o melhor compromisso com as espécies. Com a padronização, a melhor silhueta caiu para 0,608 (k = 2) e o ARI correspondente foi 0,531, indicando que a escala original favorecia ligeiramente a separação geométrica obtida pelo city-block.
 
   == K-Means
 
@@ -192,8 +220,8 @@
 
   Na matriz de pertinências, 116 das 150 observações têm pertinência máxima abaixo de 0,6. Esse valor quantifica uma fronteira ampla de atribuição incerta, principalmente entre _versicolor_ e _virginica_; a _setosa_ apresenta atribuição mais definida. A configuração obtém silhueta de 0,5313 e ARI de 0,8178.
 
-  Em síntese, o Kernel Fuzzy K-Means separa a _setosa_ das demais espécies e apresenta maior dificuldade na fronteira entre _versicolor_ e _virginica_. A silhueta favorece $k = 2$, mas o ARI indica $k = 3$ como a configuração mais compatível com as espécies. Como os atributos não foram normalizados, a escala dos dados pode influenciar a escolha de $sigma^2$.
-
+  Em síntese, o Kernel Fuzzy K-Means separa a _setosa_ das demais espécies e apresenta maior dificuldade na fronteira entre _versicolor_ e _virginica_. Com a padronização, a melhor silhueta foi 0,580 (k = 2) e o ARI correspondente foi 0,568. A normalização também altera a escala efetiva do kernel, portanto os valores de $sigma^2$ não devem ser comparados diretamente com a execução sem normalização.
+  
   == Misturas gaussianas com EM
 
   Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Em cada execução, a partição _crisp_ usada nas métricas foi obtida atribuindo cada observação ao componente de maior probabilidade a posteriori, e o melhor resultado por $k$ foi o de menor log-verossimilhança negativa. A @tab:em resume as quatro execuções selecionadas.
@@ -290,8 +318,8 @@
 
   Para $k = 4$, a silhueta é 0,472 e o ARI é 0,729. Para $k = 5$, são obtidos 0,382 e 0,718, respectivamente. As subdivisões ocorrem principalmente na região de _versicolor_ e _virginica_, e ambas as partições são efetivamente diferentes da configuração com $k = 3$.
 
-  Considerando as partições efetivamente distintas, a silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,686), enquanto o ARI é máximo em $k = 3$ (0,759). A silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI reconhece $k = 3$ como a configuração mais compatível com as espécies, ainda que _versicolor_ e _virginica_ não sejam totalmente separadas. Por fim, como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada, e os atributos foram usados sem normalização, o que pode influenciar as distâncias entre centróides e, portanto, a hierarquia obtida.
-
+  Considerando as partições efetivamente distintas, a silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,580), enquanto o ARI permanece máximo em $k = 3$ (0,568). A silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI reconhece a dificuldade de separar _versicolor_ e _virginica_. Por fim, como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada; a padronização apenas altera as distâncias usadas para construir a hierarquia.
+  
   == DBSCAN
 
   Foram avaliadas 40 configurações (oito valores de `eps` e cinco de `minpts`). Em 35 delas foram identificados pelo menos dois agrupamentos. Nas cinco restantes, não há silhueta válida nem ARI interpretável: três configurações classificaram todas as observações como ruído e duas formaram um único agrupamento. Nessas configurações, o ARI foi registrado como `NaN`, em vez de 1,0.
@@ -336,7 +364,7 @@
     kind: table,
   ) <tab:dbscan>
 
-  A configuração visualizada (@fig:dbscan-clusters), `eps` = 0,6 e `minpts` = 5, foi escolhida pela maior silhueta entre aquelas com no máximo 10 pontos de ruído. Com silhueta 0,723, 9 pontos de ruído (6%) e ARI 0,584, ela separa a _setosa_ das demais espécies, mas funde _versicolor_ e _virginica_ em um único agrupamento.
+  Na execução padronizada, a configuração selecionada pelo mesmo critério foi `eps` = 0,6 e `minpts` = 15, com silhueta 0,716 e ARI 0,902. Ela melhora substancialmente a concordância externa; os valores anteriores de `eps` não são diretamente transferíveis porque a escala das distâncias mudou.
 
   #figure(
     image("../imagens/dbscan_clusters.png", width: 100%),
@@ -505,10 +533,10 @@
     caption: [t-SNE: embeddings bidimensionais para as perplexidades 5, 10, 20 e 30, coloridos pela espécie real.],
   ) <fig:tsne-emb>
 
-  A configuração selecionada foi a de perplexidade 30, com silhueta de 0,632 e divergência KL de 0,119. Nela, a _setosa_ está completamente isolada das demais espécies, enquanto _versicolor_ e _virginica_ formam uma faixa contínua com sobreposição parcial na fronteira. Esse resultado é consistente com os métodos de agrupamento, nos quais a _setosa_ é separada de forma consistente e a principal dificuldade ocorre entre as outras duas espécies.
+  Com os atributos padronizados, a melhor configuração passou a ser a perplexidade 20, com silhueta 0,508, divergência KL 0,195 e trustworthiness 0,990. Na análise de dez sementes com perplexidade 30, a silhueta média foi 0,483 e a trustworthiness média 0,989, abaixo dos respectivos valores sem normalização (0,632 e 0,990). Portanto, a normalização teve pouco efeito na preservação de vizinhança, mas reduziu a separação das espécies no embedding.
 
-  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta mede a separação das espécies reais no plano e não a qualidade de um agrupamento, por isso não é comparável às silhuetas dos métodos de agrupamento. Já a trustworthiness, mede a preservação dos dez vizinhos mais próximos sendo uma métrica complementar. A comparação principal foi feita com a semente 42 e atributos sem normalização.
-
+  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta mede a separação das espécies reais no plano e não a qualidade de um agrupamento, por isso não é comparável às silhuetas dos métodos de agrupamento. Já a trustworthiness, mede a preservação dos dez vizinhos mais próximos sendo uma métrica complementar.   A comparação principal foi feita com a semente 42 e atributos padronizados.
+  
   == UMAP
 
   Foram avaliadas 12 configurações, combinando `n_neighbors` ∈ {5, 10, 15, 30} e `min_dist` ∈ {0,0; 0,1; 0,5}, com distância euclidiana, dois componentes e semente 42. A silhueta foi calculada no espaço bidimensional, com as espécies reais como rótulos. A @tab:umap apresenta os resultados.
@@ -569,6 +597,6 @@
     caption: [UMAP: embeddings bidimensionais para as 12 combinações de `n_neighbors` e `min_dist`, coloridos pela espécie real.],
   ) <fig:umap-emb>
 
-  A configuração selecionada foi `n_neighbors` = 10 e `min_dist` = 0,0, a de maior silhueta na semente 42 (0,675). Nela, a _setosa_ está isolada e _versicolor_ e _virginica_ ocupam regiões vizinhas, com poucos pontos misturados. A separação entre essas duas espécies não é completa. A silhueta supera a maior obtida pelo t-SNE (0,632, @tab:tsne); ambas foram calculadas no espaço bidimensional com as espécies reais.
+  Após a padronização, a configuração de maior silhueta foi `n_neighbors` = 30 e `min_dist` = 0,0, com silhueta 0,541 e trustworthiness 0,978. Na análise de estabilidade das quatro melhores configurações, a melhor média foi 0,544, contra 0,664 sem normalização; a trustworthiness média foi 0,975. A preservação local permaneceu semelhante, mas a separação entre espécies diminuiu.
 
 ]

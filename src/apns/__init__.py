@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from apns.data import carregar_iris
+from apns.data import carregar_iris, normalizar_atributos
 from apns.experiments import (
     _prepare_results_directories,
     _save_figure,
@@ -146,6 +146,7 @@ def export_kernel_pca_results(
 
 def main() -> None:
     X, y = carregar_iris()
+    X_normalizado = normalizar_atributos(X)
 
     print("Dimensões de X:", X.shape)
     print("Quantidade de rótulos:", len(y))
@@ -167,7 +168,7 @@ def main() -> None:
     eps_values = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
     minpts_values = [3, 5, 7, 10, 15]
     dbscan_results = export_dbscan_results(
-        x=X,
+        x=X_normalizado,
         y=y,
         eps_values=eps_values,
         minpts_values=minpts_values,
@@ -177,9 +178,9 @@ def main() -> None:
 
     """ {K-Medoids}
     """
-    test_kmedoids_model(X, metric="cityblock")
+    test_kmedoids_model(X_normalizado, metric="cityblock")
     kmedoids_results = export_kmedoids_results(
-        x=X,
+        x=X_normalizado,
         y=y,
         metric="cityblock",
         max_n_cluster=5,
@@ -188,14 +189,14 @@ def main() -> None:
     print("\nResultados e gráficos do K-Medoids exportados.")
 
     hierarchical_results = export_hierarchical_results(
-        x=X,
+        x=X_normalizado,
         y=y,
         max_n_cluster=5,
     )
     print("\nResultados e gráfico do agrupamento hierárquico exportados.")
 
     kernel_fuzzy_kmeans_results = export_kernel_fuzzy_kmeans_results(
-        x=X,
+        x=X_normalizado,
         y=y,
         max_n_cluster=5,
         max_iter=10,
@@ -231,14 +232,14 @@ def main() -> None:
     print(kernel_pca_variance)
 
     export_tsne_results(
-        x=X,
+        x=X_normalizado,
         y=y,
         perplexity_values=[5.0, 10.0, 20.0, 30.0],
     )
     print("\nResultados e gráfico do t-SNE exportados.")
 
     export_umap_results(
-        x=X,
+        x=X_normalizado,
         y=y,
         n_neighbors_values=[5, 10, 15, 30],
         min_dist_values=[0.0, 0.1, 0.5],
