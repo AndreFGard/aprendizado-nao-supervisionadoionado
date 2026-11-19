@@ -115,9 +115,14 @@ class PCAResult:
     embedding: np.ndarray
     variance: pd.DataFrame
     components: pd.DataFrame
+    metrics: pd.DataFrame
 
 
-def evaluate_pca_model(x: pd.DataFrame) -> PCAResult:
+def evaluate_pca_model(
+    x: pd.DataFrame,
+    y: pd.Series,
+    n_neighbors: int = 10,
+) -> PCAResult:
     model = pca.PCA.create()
     embedding = model.fit_transform(x)
     ratios = model.explained_variance_ratio_
@@ -134,10 +139,22 @@ def evaluate_pca_model(x: pd.DataFrame) -> PCAResult:
     components = pd.DataFrame(model.components_, columns=x.columns)
     components.insert(0, "component", component_names)
 
+    metrics_row = {
+        "model_name": "PCA",
+        "n_neighbors": n_neighbors,
+        "silhouette": metrics.calcular_silhueta(embedding[:, :2], y),
+        "trustworthiness": metrics.calcular_trustworthiness(
+            x,
+            embedding[:, :2],
+            n_neighbors=n_neighbors,
+        ),
+    }
+
     return PCAResult(
         embedding=embedding,
         variance=variance,
         components=components,
+        metrics=pd.DataFrame([metrics_row]),
     )
 
 
@@ -145,11 +162,14 @@ def evaluate_pca_model(x: pd.DataFrame) -> PCAResult:
 class KernelPCAResult:
     embedding: np.ndarray
     variance: pd.DataFrame
+    metrics: pd.DataFrame
 
 
 def evaluate_kernel_pca_model(
     x: pd.DataFrame,
+    y: pd.Series,
     kernel: str = "rbf",
+    n_neighbors: int = 10,
 ) -> KernelPCAResult:
     model = kernel_pca.KernelPCA.create(kernel=kernel)
     embedding = model.fit_transform(x)
@@ -167,7 +187,23 @@ def evaluate_kernel_pca_model(
             "cumulative_ratio": np.cumsum(ratios),
         }
     )
-    return KernelPCAResult(embedding=embedding, variance=variance)
+    metrics_row = {
+        "model_name": "Kernel PCA",
+        "kernel": kernel,
+        "gamma": model.gamma_,
+        "n_neighbors": n_neighbors,
+        "silhouette": metrics.calcular_silhueta(embedding[:, :2], y),
+        "trustworthiness": metrics.calcular_trustworthiness(
+            x,
+            embedding[:, :2],
+            n_neighbors=n_neighbors,
+        ),
+    }
+    return KernelPCAResult(
+        embedding=embedding,
+        variance=variance,
+        metrics=pd.DataFrame([metrics_row]),
+    )
 
 
 def evaluate_kernel_fuzzy_kmeans_model(
@@ -282,9 +318,7 @@ def export_kernel_fuzzy_kmeans_results(
     )
 
     k3_ari_result = (
-        results.loc[results["k"] == 3]
-        .sort_values("ari", ascending=False)
-        .iloc[0]
+        results.loc[results["k"] == 3].sort_values("ari", ascending=False).iloc[0]
     )
     k3_sigma2 = k3_ari_result["sigma2"]
     if pd.isna(k3_sigma2):
@@ -441,8 +475,7 @@ def export_hierarchical_results(
     )
 
     cut_height = (
-        model.linkage_matrix_[len(x) - 3 - 1, 2]
-        + model.linkage_matrix_[len(x) - 3, 2]
+        model.linkage_matrix_[len(x) - 3 - 1, 2] + model.linkage_matrix_[len(x) - 3, 2]
     ) / 2
     dendrogram_fig = plot_hierarchical_dendrogram(
         model.linkage_matrix_,
@@ -663,8 +696,7 @@ def export_dbscan_results(
     _save_figure(plots.coverage_fig, figures_dir / "dbscan_coverage.png")
 
     eligible = all_results[
-        all_results["n_ruido"].le(10)
-        & all_results["silhouette"].notna()
+        all_results["n_ruido"].le(10) & all_results["silhouette"].notna()
     ]
     if eligible.empty:
         raise ValueError(
@@ -996,8 +1028,7 @@ def export_umap_results(
 
     top_configurations = (
         results.sort_values("silhouette", ascending=False)
-        .head(n_best_configurations)
-        [["n_neighbors", "min_dist"]]
+        .head(n_best_configurations)[["n_neighbors", "min_dist"]]
         .itertuples(index=False, name=None)
     )
 
