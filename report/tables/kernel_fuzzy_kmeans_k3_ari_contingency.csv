@@ -1,4 +1,4 @@
-species,Versicolor,Virginica,Setosa
-Setosa,0,0,50
-Versicolor,39,11,0
-Virginica,11,39,0
+species,Setosa,Versicolor
+Setosa,50,0
+Versicolor,0,50
+Virginica,0,50

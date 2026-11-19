@@ -28,6 +28,7 @@ from apns.visualization import (
     plot_kmedoids_silhouette,
     plot_membership_degrees,
     plot_objective_convergence,
+    plot_silhouette_by_k,
     plot_tsne_embedding,
     plot_tsne_embeddings_comparison,
     plot_tsne_perplexity_comparison,
@@ -286,11 +287,29 @@ def export_kernel_fuzzy_kmeans_results(
 
     _save_table(results, tables_dir, "kernel_fuzzy_kmeans_metrics.csv")
 
-    best_result = _select_best_row(
-        results,
-        metric="silhouette",
-        fallback_metric="objective",
+    parameter_columns = ["k", "m", "sigma2"]
+    best_per_configuration = (
+        results.groupby(parameter_columns, dropna=False, sort=True)["objective"]
+        .idxmin()
+        .pipe(lambda indices: results.loc[indices])
+        .reset_index(drop=True)
     )
+    best_by_k = (
+        best_per_configuration
+        .loc[
+            best_per_configuration.groupby("k", sort=True)["objective"]
+            .idxmin()
+        ]
+        .sort_values("k")
+        .reset_index(drop=True)
+    )
+    _save_table(best_by_k, tables_dir, "kernel_fuzzy_kmeans_best_by_k.csv")
+    _save_figure(
+        plot_silhouette_by_k(best_by_k, "Kernel Fuzzy K-Means"),
+        figures_dir / "kernel_fuzzy_kmeans_silhouette.png",
+    )
+
+    best_result = _select_best_row(best_by_k, metric="silhouette")
     best_sigma2 = best_result["sigma2"]
     if pd.isna(best_sigma2):
         best_sigma2 = None
@@ -320,25 +339,8 @@ def export_kernel_fuzzy_kmeans_results(
         figures_dir / "kernel_fuzzy_kmeans_memberships.png",
     )
 
-    k3_ari_result = (
-        results.loc[results["k"] == 3].sort_values("ari", ascending=False).iloc[0]
-    )
-    k3_sigma2 = k3_ari_result["sigma2"]
-    if pd.isna(k3_sigma2):
-        k3_sigma2 = None
-    k3_model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
-        n_clusters=3,
-        random_state=int(k3_ari_result["iter"]),
-        m=float(k3_ari_result["m"]),
-        sigma2=k3_sigma2,
-        n_init=n_init,
-        max_iter=model_max_iter,
-        tol=tol,
-    )
-    k3_model.fit(x)
-
     cluster_species = (
-        pd.DataFrame({"cluster": k3_model.labels_, "species": y.to_numpy()})
+        pd.DataFrame({"cluster": model.labels_, "species": y.to_numpy()})
         .groupby("cluster")["species"]
         .agg(lambda values: values.mode().iloc[0])
     )
@@ -347,47 +349,53 @@ def export_kernel_fuzzy_kmeans_results(
         "Iris-versicolor": "Versicolor",
         "Iris-virginica": "Virginica",
     }
-    k3_cluster_names = {
+    k_star_cluster_names = {
         int(cluster): species_names[str(species)]
         for cluster, species in cluster_species.items()
     }
 
-    k3_clusters_fig = plot_cluster_assignments(
+    k_star_clusters_fig = plot_cluster_assignments(
         x,
-        k3_model.labels_,
-        "Kernel Fuzzy K-Means (k = 3): melhor ARI",
+        model.labels_,
+        f"Kernel Fuzzy K-Means (k = {int(best_result['k'])}): melhor silhueta",
         x_column="petal_length",
         y_column="petal_width",
-        cluster_names=k3_cluster_names,
+        cluster_names=k_star_cluster_names,
     )
     _save_figure(
-        k3_clusters_fig,
+        k_star_clusters_fig,
         figures_dir / "kernel_fuzzy_kmeans_k3_ari_clusters.png",
     )
 
-    k3_membership_fig = plot_membership_degrees(
-        k3_model.membership_,
-        cluster_names=k3_cluster_names,
-        title="Kernel Fuzzy K-Means (k = 3): graus de pertinência",
+    k_star_membership_fig = plot_membership_degrees(
+        model.membership_,
+        cluster_names=k_star_cluster_names,
+        title=(
+            "Kernel Fuzzy K-Means "
+            f"(k = {int(best_result['k'])}): graus de pertinência"
+        ),
     )
     _save_figure(
-        k3_membership_fig,
+        k_star_membership_fig,
         figures_dir / "kernel_fuzzy_kmeans_k3_ari_memberships.png",
     )
 
     contingency = (
         pd.crosstab(
             pd.Series(y.to_numpy(), name="species"),
-            pd.Series(k3_model.labels_, name="cluster"),
+            pd.Series(model.labels_, name="cluster"),
         )
         .rename(index=species_names)
-        .rename(columns=k3_cluster_names)
+        .rename(columns=k_star_cluster_names)
     )
     contingency.to_csv(tables_dir / "kernel_fuzzy_kmeans_k3_ari_contingency.csv")
 
     membership_table = pd.DataFrame(
-        k3_model.membership_,
-        columns=[k3_cluster_names[cluster] for cluster in range(3)],
+        model.membership_,
+        columns=[
+            k_star_cluster_names[cluster]
+            for cluster in range(int(best_result["k"]))
+        ],
     )
     membership_table.insert(0, "sample", range(len(membership_table)))
     membership_table.to_csv(
@@ -401,7 +409,7 @@ def export_kernel_fuzzy_kmeans_results(
         figures_dir / "kernel_fuzzy_kmeans_objective_convergence.png",
     )
 
-    return results
+    return best_by_k
 
 
 def evaluate_hierarchical_model(
@@ -549,8 +557,9 @@ def select_best_kmedoids_by_k(results: pd.DataFrame) -> pd.DataFrame:
 
 
 def select_best_kmedoids_configuration(results: pd.DataFrame) -> pd.DataFrame:
-    best_result = _select_best_row(results, metric="silhouette")
-    return results.loc[[best_result.name]].reset_index(drop=True)
+    best_by_k = select_best_kmedoids_by_k(results)
+    best_result = _select_best_row(best_by_k, metric="silhouette")
+    return best_by_k.loc[[best_result.name]].reset_index(drop=True)
 
 
 def export_kmedoids_results(
