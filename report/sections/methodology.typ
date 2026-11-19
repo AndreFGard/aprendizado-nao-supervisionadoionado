@@ -1,5 +1,5 @@
 #let methodology = [
-  = Algoritmos de agrupamento
+  = Algoritmos de agrupamento <sec:metodologia>
 
   == Procedimento metodológico
 
@@ -7,11 +7,11 @@
   Cada algoritmo foi executado com seus parâmetros específicos, e quando aplicável, foram avaliadas diferentes configurações por meio da variação dos parâmetros de interesse e de sementes aleatórias. A avaliação utilizou o Silhouette Score como métrica interna e o Adjusted Rand Index (ARI) como métrica externa. O Silhouette Score mede a separação dos grupos em relação à coesão interna, enquanto o ARI mede a concordância entre os agrupamentos e as espécies reais, corrigida pelo acordo esperado ao acaso. O cálculo dessas métricas seguiu as particularidades de cada algoritmo, incluindo o tratamento de observações classificadas como ruído.
 
   == K-Means
-  O K-Means é um método particional baseado em centróides, que são definidos como o ponto médio do agrupamento. Assim, a função objetivo da distância euclidiana ao quadrado (SSE) REF_FORMULASSE é minimizada para garantir a similaridade intra-agrupamento e reduzir a inter-agrupamento REF_data-mining-and-concepts.
+  O K-Means é um método particional baseado em centróides, que são definidos como o ponto médio do agrupamento. Assim, a função objetivo da distância euclidiana ao quadrado (SSE, @eq:sse) é minimizada para garantir a similaridade intra-agrupamento e reduzir a inter-agrupamento @han_kamber_pei_2012.
 
-  SSE = FORMULASSE
+  $ "SSE" = sum_(j=1)^k sum_(x_i in C_j) norm(x_i - mu_j)^2 $ <eq:sse>
 
-  Neste trabalho, o algoritmo foi implementado com a classe _KMeans_ do Scikit-learn REF_SCIKIT, utilizando a SSE e inicialização aleatória, a fim de reproduzir a implementação de referência REF_data-mining-and-concepts, com as demais configurações seguindo as predefinições da classe.
+  Neste trabalho, o algoritmo foi implementado com a classe _KMeans_ do Scikit-learn @pedregosa2011scikit, utilizando a SSE e inicialização aleatória, a fim de reproduzir a implementação de referência @han_kamber_pei_2012, com as demais configurações seguindo as predefinições da classe.
 
   Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um por 10 vezes, com a sua respectiva inicialização aleatória.
 
@@ -32,7 +32,7 @@
   $ J_"m" = sum_(i=1)^n sum_(j=1)^k u_(i j)^"m" ||x_i - c_j||^2, $
 
 
-  Neste trabalho, o algoritmo foi implementado com a classe FCM REF_CMEANS, utilizando a SSE e inicialização aleatória, com as demais configurações seguindo as predefinições da classe, incluindo _m_. Para calcular o Silhouette Score e o ARI, cada observação foi associada ao agrupamento de maior pertinência, obtendo-se um particionamento _crisp_.
+  Neste trabalho, o algoritmo foi implementado com a classe FCM @bezdek1981pattern, utilizando a SSE e inicialização aleatória, com as demais configurações seguindo as predefinições da classe, incluindo _m_. Para calcular o Silhouette Score e o ARI, cada observação foi associada ao agrupamento de maior pertinência, obtendo-se um particionamento _crisp_.
 
   Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um por 10 vezes, com a sua respectiva inicialização aleatória.
 
@@ -52,7 +52,7 @@
 
   O Gaussian Mixture Model (GMM) é um método probabilístico de agrupamento que modela os dados como uma mistura de $k$ distribuições gaussianas multivariadas, $p(x_i) = sum_(j=1)^k pi_j thin cal(N)(x_i | mu_j, Sigma_j)$, em que $pi_j$, $mu_j$ e $Sigma_j$ são o peso, a média e a covariância do componente $j$. Os parâmetros são obtidos por Expectation-Maximization (EM), que alterna o cálculo das responsabilidades de cada componente sobre cada observação e a reestimação dos parâmetros ponderada por elas. Diferentemente do K-Means, as atribuições são probabilísticas, e a matriz $Sigma_j$ permite agrupamentos com regiões mais complexas.
 
-  Neste trabalho, o algoritmo foi implementado por meio da classe GaussianMixture do Scikit-learn REF_SCIKIT, com inicialização aleatória e demais parâmetros seguindo aqueles predefinidos pelos autores da biblioteca, incluindo a matriz de covariância _full_.
+  Neste trabalho, o algoritmo foi implementado por meio da classe GaussianMixture do Scikit-learn @pedregosa2011scikit, com inicialização aleatória e demais parâmetros seguindo aqueles predefinidos pelos autores da biblioteca, incluindo a matriz de covariância _full_.
 
   Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um por 10 vezes, com a sua respectiva inicialização aleatória. Para cada execução, foram registrados o número de iterações, a log-verossimilhança negativa, adotada como função objetivo a ser minimizada, o Silhouette Score e o ARI. A partição discreta usada nas métricas foi obtida associando cada observação ao componente de maior probabilidade posterior.
 

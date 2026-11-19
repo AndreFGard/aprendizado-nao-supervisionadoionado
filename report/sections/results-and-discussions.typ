@@ -82,7 +82,7 @@
 
   == Fuzzy K-Means
 
-  Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$, com inicializações diferentes. Conforme descrito em REF_METHODOOLOGY, a melhor configuração por $k$ foi escolhida e, entre estas, a final foi a de maior silhueta. A @tab:fkm resume as quatro partições selecionadas.
+  Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$, com inicializações diferentes. Conforme descrito em @sec:metodologia, a melhor configuração por $k$ foi escolhida e, entre estas, a final foi a de maior silhueta. A @tab:fkm resume as quatro partições selecionadas.
 
   #figure(
     table(
