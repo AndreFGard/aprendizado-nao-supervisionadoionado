@@ -1,81 +1,6 @@
 #let results-and-discussions = [
   = Resultados e discussões
 
-  == Efeito da padronização
-
-  A tabela abaixo compara, para cada método, a melhor silhueta encontrada nas tabelas originais e nas execuções com z-score. Para DBSCAN, K-Medoids, agrupamento hierárquico e Kernel Fuzzy K-Means, o ARI corresponde à mesma configuração que maximizou a silhueta. Para t-SNE e UMAP, a avaliação externa não se aplica; nesses casos é apresentada a trustworthiness.
-
-  #figure(
-    table(
-      columns: 5,
-      align: center,
-      stroke: none,
-      table.hline(),
-      table.header([*Método*], [*Sil. original*], [*Sil. normalizada*], [*ARI normalizado*], [*Trust. normalizada*]),
-      table.hline(),
-      [DBSCAN], [0,846], [0,716], [0,902], [--],
-      [K-Medoids], [0,674], [0,608], [0,531], [--],
-      [Hierárquico], [0,686], [0,580], [0,568], [--],
-      [Kernel Fuzzy K-Means], [0,686], [0,580], [0,568], [--],
-      [t-SNE], [0,632], [0,508], [--], [0,990],
-      [UMAP], [0,675], [0,541], [--], [0,978],
-      table.hline(),
-    ),
-    caption: [Comparação entre as melhores configurações sem e com padronização.],
-    kind: table,
-  ) <tab:normalizacao>
-
-  A padronização reduziu a silhueta dos métodos baseados em distância e dos embeddings, mas teve efeitos distintos sobre a concordância externa. O DBSCAN foi o principal beneficiado em ARI, passando a 0,902 com `eps` = 0,6 e `minpts` = 15, enquanto K-Medoids, hierárquico e Kernel Fuzzy K-Means mantiveram ARI próximo de 0,53--0,57. Para t-SNE e UMAP, a trustworthiness permaneceu praticamente estável, sugerindo que a normalização alterou mais a separação entre espécies do que a preservação de vizinhanças. As tabelas completas das execuções normalizadas foram exportadas com o sufixo `_normalized`.
-
-  == K-Means
-
-  == K-Medoids
-
-  Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Para cada $k$, as sementes produziram soluções idênticas em silhueta, inércia, ARI e rótulos, portanto o experimento resulta em quatro configurações distintas. A @tab:kmedoids resume os resultados.
-
-  #figure(
-    table(
-      columns: 4,
-      align: center,
-      stroke: none,
-      table.hline(),
-      table.header([*$k$*], [*Silhouette*], [*ARI*], [*Inércia*]),
-      table.hline(),
-      [2], [0,674], [0,540], [219,5],
-      [3], [0,529], [0,744], [164,8],
-      [4], [0,500], [0,653], [140,2],
-      [5], [0,443], [0,692], [131,9],
-      table.hline(),
-    ),
-    caption: [K-Medoids (distância city-block)],
-    kind: table,
-  ) <tab:kmedoids>
-
-  A silhueta diminui com $k$ (@fig:kmed-sil), atingindo o máximo em $k = 2$ (0,674). A inércia também diminui continuamente (@fig:kmed-inercia). Entre $k = 2$ e $k = 3$, a queda é de 54,7 (24,9%); em seguida, passa a 24,6 (14,9%) e a 8,3 (5,9%), indicando visualmente um cotovelo em $k = 3$.
-
-  #figure(
-    image("../imagens/kmedoids_silhouette.png", width: 100%),
-    caption: [Silhouette em função do número de agrupamentos $k$ (K-Medoids).],
-  ) <fig:kmed-sil>
-
-  #figure(
-    image("../imagens/kmedoids_inertia.png", width: 100%),
-    caption: [Inércia em função do número de agrupamentos $k$ (K-Medoids).],
-  ) <fig:kmed-inercia>
-
-  A análise externa mostra que o ARI é máximo em $k = 3$ (0,744). Em todas as configurações, os 50 exemplares de _Iris setosa_ ficam isolados em um agrupamento, e as diferenças principais ocorrem na região de sobreposição entre _versicolor_ e _virginica_. Para $k = 2$, um agrupamento reúne as 50 _setosa_ e 3 _versicolor_ (53 observações), e o outro reúne 47 _versicolor_ e as 50 _virginica_ (97 observações). A silhueta elevada reflete a separação nítida da _setosa_ em relação ao restante. O ARI é menor porque a partição funde duas espécies.
-
-  #figure(
-    image("../imagens/kmedoids_clusters.png", width: 100%),
-    caption: [Agrupamento por K-Medoids com $k = 3$, projetado em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo e os marcadores em formato `X` representam os medóides.],
-  ) <fig:kmed-clusters>
-
-  Para $k = 3$, a _setosa_ permanece isolada (50/50). Dos 50 exemplares de _versicolor_, 37 ficam em um agrupamento e 13 migram para o agrupamento dominado por _virginica_, que contém 48 das 50 _virginica_, e 2 _virginica_ são atribuídas ao agrupamento de _versicolor_. No total, 15 das 150 observações (10%) são alocadas fora do agrupamento majoritário de sua espécie, e os tamanhos dos agrupamentos são 39, 50 e 61. A @fig:kmed-clusters apresenta essa configuração projetada em comprimento e largura das pétalas. Os medóides têm coordenadas (5,7; 2,8; 4,1; 1,3), (5,0; 3,4; 1,5; 0,2) e (6,5; 3,0; 5,2; 2,0), nesta ordem: sepal_length, sepal_width, petal_length e petal_width. A queda da silhueta para 0,529 é explicada pela fronteira difusa entre _versicolor_ e _virginica_. A silhueta média por agrupamento é de aproximadamente 0,79 para o grupo da _setosa_, contra 0,50 e 0,34 para os outros dois. Esse resultado é compatível com o fato de o K-Medoids, por favorecer grupos compactos, não distinguir adequadamente objetos em regiões de fronteira.
-
-  Com $k = 4$ e $k = 5$, os grupos adicionais subdividem a região de _versicolor_ e _virginica_ sem corresponder a novas espécies. Em ambos os casos, a silhueta diminui e o ARI não supera o de $k = 3$.
-
-  Os resultados mostram uma divergência entre os critérios: a silhueta favorece $k = 2$, enquanto o ARI e o cotovelo da inércia apontam $k = 3$. Assim, $k = 2$ apresenta a melhor separação geométrica, mas $k = 3$ oferece o melhor compromisso com as espécies. Com a padronização, a melhor silhueta caiu para 0,608 (k = 2) e o ARI correspondente foi 0,531, indicando que a escala original favorecia ligeiramente a separação geométrica obtida pelo city-block.
-
   == K-Means
 
   Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Para cada $k$, foi selecionada a execução de menor SSE e, entre as quatro partições resultantes, o número de grupos foi escolhido por $k^* = "arg max"_k "Sil"(k)$. A @tab:kmeans resume os resultados.
@@ -107,6 +32,53 @@
 
   //TODO Adicionar um scatter plot comparando k2 e k3.
   A partição com $k^* = 2$ repete o padrão descrito para o K-Medoids, em que um grupo reúne as 50 _setosa_ e 3 _versicolor_, e o outro reúne 47 _versicolor_ e as 50 _virginica_. A silhueta elevada reflete a separação da _setosa_, mas o ARI comparativamente menor que o de $k^*3$ decorre da fusão entre _versicolor_ e _virginica_. A silhueta decresce de $k = 2$ até $k = 5$, enquanto o ARI é máximo em $k = 3$ (0,730), com silhueta de 0,553. A divergência entre os critérios é a mesma observada no K-Medoids, em que a silhueta favorece a separação em 2 grupos enquanto o ARI aponta para 3 grupos particionarem os dados mais condizentemente com os rótulos. Nessa partição de $k = 3$, a _setosa_ permanece isolada e 10,7%  das observações não pertencem ao grupo majoritário da espécie, também em acordo com o resultado com o K-Medoids. Contudo, a diferença entre as métricas de ambos aumenta ligeiramente em $k=5$, chegando a ≃ 0.05 para a Silhouette e ≃ 0,07 para o ARI.
+
+  == K-Medoids
+
+  Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Para cada $k$, as sementes produziram soluções idênticas em silhueta, inércia, ARI e rótulos, portanto o experimento resulta em quatro configurações distintas. A @tab:kmedoids resume os resultados.
+
+  #figure(
+    table(
+      columns: 4,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*$k$*], [*Silhouette*], [*ARI*], [*Inércia*]),
+      table.hline(),
+      [2], [0,608], [0,531], [270,2],
+      [3], [0,488], [0,665], [208,1],
+      [4], [0,370], [0,611], [200,4],
+      [5], [0,293], [0,492], [187,2],
+      table.hline(),
+    ),
+    caption: [K-Medoids (distância city-block)],
+    kind: table,
+  ) <tab:kmedoids>
+
+  A silhueta diminui com $k$ (@fig:kmed-sil), atingindo o máximo em $k = 2$ (0,608). A inércia também diminui continuamente (@fig:kmed-inercia). Entre $k = 2$ e $k = 3$, a queda é de 62,1 (23,0%); em seguida, passa a 7,7 (3,7%) e a 13,2 (6,6%), sem um cotovelo tão pronunciado.
+
+  #figure(
+    image("../imagens/kmedoids_silhouette.png", width: 100%),
+    caption: [Silhouette em função do número de agrupamentos $k$ (K-Medoids).],
+  ) <fig:kmed-sil>
+
+  #figure(
+    image("../imagens/kmedoids_inertia.png", width: 100%),
+    caption: [Inércia em função do número de agrupamentos $k$ (K-Medoids).],
+  ) <fig:kmed-inercia>
+
+  A análise externa mostra que o ARI é máximo em $k = 3$ (0,665). Em todas as configurações, os 50 exemplares de _Iris setosa_ ficam isolados em um agrupamento, e as diferenças principais ocorrem na região de sobreposição entre _versicolor_ e _virginica_. Para $k = 2$, um agrupamento reúne as 50 _setosa_ e 2 _versicolor_, e o outro reúne 48 _versicolor_ e as 50 _virginica_. A silhueta elevada reflete a separação nítida da _setosa_ em relação ao restante. O ARI é menor porque a partição funde duas espécies.
+
+  #figure(
+    image("../imagens/kmedoids_clusters.png", width: 100%),
+    caption: [Agrupamento por K-Medoids com $k = 3$, projetado em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo e os marcadores em formato `X` representam os medóides.],
+  ) <fig:kmed-clusters>
+
+  Para $k = 3$, a _setosa_ permanece isolada, mas a separação entre _versicolor_ e _virginica_ é menos precisa: o ARI é 0,665 e a silhueta é 0,488. A @fig:kmed-clusters apresenta essa configuração projetada em comprimento e largura das pétalas. Esse resultado é compatível com a fronteira difusa entre as duas espécies.
+
+  Com $k = 4$ e $k = 5$, os grupos adicionais subdividem a região de _versicolor_ e _virginica_ sem corresponder a novas espécies. Em ambos os casos, a silhueta diminui e o ARI não supera o de $k = 3$.
+
+  Os resultados mostram uma divergência entre os critérios: a silhueta favorece $k = 2$, enquanto o ARI favorece $k = 3$. Assim, $k = 2$ apresenta a melhor separação geométrica, mas $k = 3$ oferece o melhor compromisso com as espécies.
 
   == Fuzzy K-Means
 
@@ -156,23 +128,23 @@
       table.hline(),
       table.header([*$k$*], [*Sil. média*], [*Sil. mín.*], [*ARI média*], [*ARI máx.*]),
       table.hline(),
-      [2], [0,686], [0,683], [0,564], [0,568],
-      [3], [0,532], [0,428], [0,765], [0,818],
-      [4], [0,474], [0,230], [0,671], [0,719],
-      [5], [0,396], [0,168], [0,575], [0,734],
+      [2], [0,532], [0,290], [0,532], [0,568],
+      [3], [0,429], [0,295], [0,575], [0,652],
+      [4], [0,327], [0,136], [0,552], [0,612],
+      [5], [0,313], [0,113], [0,497], [0,617],
       table.hline(),
     ),
     caption: [Kernel Fuzzy K-Means: considerando todas as combinações de $m$, $sigma^2$ e sementes.],
     kind: table,
   ) <tab:kfkm>
 
-  A silhueta média decresce de 0,686 em $k = 2$ para 0,396 em $k = 5$, repetindo a tendência já observada, e o ARI médio é máximo em $k = 3$ (0,765), assim como o ARI máximo observado (0,818). Esses resultados evidenciam a divergência entre os critérios interno e externo.
+  A silhueta média decresce de 0,532 em $k = 2$ para 0,313 em $k = 5$, repetindo a tendência já observada, e o ARI médio é máximo em $k = 3$ (0,575), assim como o ARI máximo observado (0,652). Esses resultados evidenciam a divergência entre os critérios interno e externo.
 
-  Pela maior silhueta, a configuração selecionada foi $k = 2$, $m = 1,5$ e $sigma^2 = 0,5$, com silhueta de 0,6864 e ARI de 0,5681. Essa solução separa a _setosa_ das demais espécies. Na @fig:kfkm-pert, a _setosa_ apresenta pertinência elevada a um agrupamento, enquanto as espécies _versicolor_ e _virginica_ mostram pertinências intermediárias na região de fronteira. A atribuição pelo maior grau de pertinência produz a partição exibida na @fig:kfkm-clusters.
+  Pela maior silhueta, a configuração selecionada foi $k = 2$, $m = 1,5$ e $sigma^2 = "automático"$, com silhueta de 0,5802 e ARI de 0,5681. Essa solução separa a _setosa_ das demais espécies. Na @fig:kfkm-pert, a _setosa_ apresenta pertinência elevada a um agrupamento, enquanto as espécies _versicolor_ e _virginica_ mostram pertinências intermediárias na região de fronteira. A atribuição pelo maior grau de pertinência produz a partição exibida na @fig:kfkm-clusters.
 
   #figure(
     image("../imagens/kernel_fuzzy_kmeans_memberships.png", width: 100%),
-    caption: [Graus de pertinência da melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2 = 0,5$).],
+    caption: [Graus de pertinência da melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2$ automático).],
   ) <fig:kfkm-pert>
 
   #figure(
@@ -180,14 +152,14 @@
     caption: [Melhor agrupamento por silhueta, projetado em `sepal_length` e `sepal_width`.],
   ) <fig:kfkm-clusters>
 
-  A @fig:kfkm-conv mostra a convergência em 18 iterações, com estabilização a partir da iteração 12. Como os valores da função objetivo dependem de $m$ e de $sigma^2$, eles não são usados para comparar configurações.
+  A @fig:kfkm-conv mostra a convergência da configuração selecionada. Como os valores da função objetivo dependem de $m$ e de $sigma^2$, eles não são usados para comparar configurações.
 
   #figure(
     image("../imagens/kernel_fuzzy_kmeans_objective_convergence.png", width: 100%),
     caption: [Convergência da função objetivo da melhor configuração por silhueta.],
   ) <fig:kfkm-conv>
 
-  Para $k = 3$, o ARI máximo foi 0,818, obtido com $m = 2,0$ e $sigma^2 = 0,5$. A maior silhueta nessa configuração foi 0,549, com $m = 1,5$ e $sigma^2$ automático, associada a ARI menor (0,729). Portanto, o ARI aponta $k = 3$ como a configuração mais coerente com as espécies, enquanto a silhueta favorece $k = 2$. Valores extremos dos parâmetros produziram instabilidade: 13 das 480 execuções atingiram o limite de 100 iterações. Essa ocorrência foi concentrada em $m = 2,5$, sobretudo em $k = 5$.
+  Para $k = 3$, o ARI máximo foi 0,652, obtido com $m = 2,5$ e $sigma^2 = 2,0$. A maior silhueta foi 0,580, com $k = 2$, $m = 1,5$ e $sigma^2$ automático, associada a ARI de 0,568. Portanto, o ARI aponta $k = 3$ como a configuração mais coerente com as espécies, enquanto a silhueta favorece $k = 2$. Valores extremos dos parâmetros produziram instabilidade: 9 das 480 execuções atingiram o limite de 100 iterações.
 
   Na melhor configuração por ARI ($k = 3$, $m = 2,0$, $sigma^2 = 0,5$, semente 2), a atribuição pelo maior grau de pertinência reproduz a separação da _setosa_ e concentra as confusões entre _versicolor_ e _virginica_ (@tab:kfkm-k3-contingencia).
 
@@ -220,7 +192,7 @@
 
   Na matriz de pertinências, 116 das 150 observações têm pertinência máxima abaixo de 0,6. Esse valor quantifica uma fronteira ampla de atribuição incerta, principalmente entre _versicolor_ e _virginica_; a _setosa_ apresenta atribuição mais definida. A configuração obtém silhueta de 0,5313 e ARI de 0,8178.
 
-  Em síntese, o Kernel Fuzzy K-Means separa a _setosa_ das demais espécies e apresenta maior dificuldade na fronteira entre _versicolor_ e _virginica_. Com a padronização, a melhor silhueta foi 0,580 (k = 2) e o ARI correspondente foi 0,568. A normalização também altera a escala efetiva do kernel, portanto os valores de $sigma^2$ não devem ser comparados diretamente com a execução sem normalização.
+  Em síntese, o Kernel Fuzzy K-Means separa a _setosa_ das demais espécies e apresenta maior dificuldade na fronteira entre _versicolor_ e _virginica_.
   
   == Misturas gaussianas com EM
 
@@ -288,10 +260,10 @@
       table.hline(),
       table.header([*$k$*], [*Grupos*], [*Silhouette*], [*ARI*]),
       table.hline(),
-      [2], [2], [0,686], [0,568],
-      [3], [3], [0,554], [0,759],
-      [4], [4], [0,472], [0,729],
-      [5], [5], [0,382], [0,718],
+      [2], [2], [0,580], [0,568],
+      [3], [3], [0,479], [0,562],
+      [4], [4], [0,406], [0,552],
+      [5], [5], [0,374], [0,551],
       table.hline(),
     ),
     caption: [Centroid Linkage (distância euclidiana).],
@@ -305,9 +277,9 @@
     caption: [Dendrograma truncado do agrupamento hierárquico (Centroid Linkage, distância euclidiana), com linha de corte para a partição em $k = 3$.],
   ) <fig:hier-dend>
 
-  Para $k = 2$, a partição separa a _setosa_ (50 observações) das demais espécies (100 observações), a mesma partição obtida pela Mistura Gaussiana, com silhueta de 0,686 e ARI de 0,568. A silhueta elevada reflete a separação da _setosa_, e o ARI é moderado porque _versicolor_ e _virginica_ permanecem juntas.
+  Para $k = 2$, a partição separa a _setosa_ (50 observações) das demais espécies (100 observações), a mesma partição obtida pela Mistura Gaussiana, com silhueta de 0,580 e ARI de 0,568. A silhueta elevada reflete a separação da _setosa_, e o ARI é moderado porque _versicolor_ e _virginica_ permanecem juntas.
 
-  Para $k = 3$, a _setosa_ permanece isolada e as demais observações são divididas em grupos de 64 e 36 observações. O grupo de 64 reúne as 50 _versicolor_ e 14 _virginica_, enquanto o de 36 contém apenas _virginica_. Assim, 14 das 150 observações (9,3%) ficam fora do agrupamento majoritário de sua espécie. A silhueta cai para 0,554 e o ARI sobe para 0,759, o maior valor entre as partições avaliadas.
+  Para $k = 3$, a _setosa_ permanece isolada e as demais observações são divididas em grupos menores, com silhueta de 0,479 e ARI de 0,562. A separação entre _versicolor_ e _virginica_ permanece limitada.
 
   #figure(
     image("../imagens/hierarchical_k3_petal_clusters.png", width: 82%),
@@ -316,9 +288,9 @@
 
   Como o Centroid Linkage não é monotônico, o `cut_tree` pode retornar menos rótulos que o $k$ solicitado. Por isso, as partições desta análise foram reconstruídas a partir das primeiras $n-k$ fusões, garantindo exatamente $k$ grupos.
 
-  Para $k = 4$, a silhueta é 0,472 e o ARI é 0,729. Para $k = 5$, são obtidos 0,382 e 0,718, respectivamente. As subdivisões ocorrem principalmente na região de _versicolor_ e _virginica_, e ambas as partições são efetivamente diferentes da configuração com $k = 3$.
+  Para $k = 4$, a silhueta é 0,406 e o ARI é 0,552. Para $k = 5$, são obtidos 0,374 e 0,551, respectivamente. As subdivisões ocorrem principalmente na região de _versicolor_ e _virginica_, e ambas as partições são efetivamente diferentes da configuração com $k = 3$.
 
-  Considerando as partições efetivamente distintas, a silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,580), enquanto o ARI permanece máximo em $k = 3$ (0,568). A silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI reconhece a dificuldade de separar _versicolor_ e _virginica_. Por fim, como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada; a padronização apenas altera as distâncias usadas para construir a hierarquia.
+  Considerando as partições efetivamente distintas, a silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,580), enquanto o ARI permanece máximo em $k = 3$ (0,562). A silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI reconhece a dificuldade de separar _versicolor_ e _virginica_. Por fim, como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada.
   
   == DBSCAN
 
@@ -336,7 +308,7 @@
     caption: [DBSCAN: cobertura da base em função de `eps`, para cada valor de `minpts`.],
   ) <fig:dbscan-cobertura>
 
-  A silhueta (@fig:dbscan-sil) não varia monotonicamente com `eps`. Os maiores valores aparecem com `eps` pequeno, mas acompanham descarte elevado da base: a configuração `eps` = 0,3 e `minpts` = 7 atinge silhueta 0,846 descartando 72% das observações. Para `eps` ≥ 0,7, os valores convergem entre 0,68 e 0,73. Como silhueta e ARI excluem o ruído, devem ser interpretados junto com a cobertura.
+  A silhueta (@fig:dbscan-sil) não varia monotonicamente com `eps`. Na configuração selecionada, `eps` = 0,7 e `minpts` = 5, a silhueta é 0,610, com 8 observações classificadas como ruído e cobertura de 94,7%. Como silhueta e ARI excluem o ruído, devem ser interpretados junto com a cobertura.
 
   #figure(
     image("../imagens/dbscan_silhouette.png", width: 100%),
@@ -353,22 +325,20 @@
       table.hline(),
       table.header([*`eps`*], [*`minpts`*], [*Grupos*], [*Ruído*], [*Silhouette*], [*ARI*]),
       table.hline(),
-      [0,3], [7], [2], [108 (72,0%)], [0,846], [1,000],
-      [0,4], [3], [4], [22 (14,7%)], [0,474], [0,890],
-      [0,5], [15], [2], [86 (57,3%)], [0,813], [1,000],
-      [0,6], [5], [2], [9 (6,0%)], [0,723], [0,584],
-      [1,0], [5], [2], [0 (0,0%)], [0,686], [0,568],
+      [0,3], [7], [2], [128 (85,3%)], [0,634], [0,000],
+      [0,4], [3], [10], [39 (26,0%)], [0,418], [0,621],
+      [0,5], [15], [1], [127 (84,7%)], [--], [--],
+      [0,6], [5], [2], [26 (17,3%)], [0,641], [0,611],
+      [1,0], [5], [2], [3 (2,0%)], [0,594], [0,568],
       table.hline(),
     ),
     caption: [Configurações representativas. Silhueta e ARI calculados sem as observações de ruído.],
     kind: table,
   ) <tab:dbscan>
 
-  Na execução padronizada, a configuração selecionada pelo mesmo critério foi `eps` = 0,6 e `minpts` = 15, com silhueta 0,716 e ARI 0,902. Ela melhora substancialmente a concordância externa; os valores anteriores de `eps` não são diretamente transferíveis porque a escala das distâncias mudou.
-
   #figure(
     image("../imagens/dbscan_clusters.png", width: 100%),
-    caption: [DBSCAN com `eps` = 0,6 e `minpts` = 5, projetado em `sepal_length` e `sepal_width`. O rótulo −1 indica ruído.],
+    caption: [DBSCAN com `eps` = 0,7 e `minpts` = 5, projetado em `sepal_length` e `sepal_width`. O rótulo −1 indica ruído.],
   ) <fig:dbscan-clusters>
 
   Com `eps` = 0,4 e `minpts` = 3, o DBSCAN forma quatro agrupamentos, descarta 22 observações (14,7%) e alcança o maior ARI entre configurações com até 15% de ruído: 0,890, com silhueta 0,474. Conforme a @tab:dbscan-cont, três grupos correspondem majoritariamente às espécies, enquanto um quarto agrupa poucos pontos de _versicolor_. A @fig:dbscan-petalas mostra essa fragmentação no plano das pétalas.
@@ -493,7 +463,7 @@
     caption: [Kernel PCA (RBF, $gamma = 0,25$): observações projetadas nas duas primeiras componentes, coloridas pela espécie real.],
   ) <fig:kpca-scatter>
 
-  Na projeção (@fig:kpca-scatter), a _setosa_ permanece separada das demais espécies, enquanto _versicolor_ e _virginica_ apresentam maior distinção do que na PCA linear. Essa separação ocorre sobretudo na segunda componente, visto que os centróides das duas espécies quase coincidem na primeira (−0,36 e −0,42), mas se afastam na segunda (−0,36 e 0,34). Nas métricas complementares, a silhueta no plano é de 0,607, superior à da PCA linear (0,534), mas inferior às do t-SNE (0,632) e do UMAP (0,675). Já a trustworthiness com dez vizinhos cai para 0,938, contra 0,983 na PCA. Portanto, nota-se que essa representação introduziu vizinhos artificiais, indicando uma distorção na estrutura, apesar da separação melhor.
+  Na projeção (@fig:kpca-scatter), a _setosa_ permanece separada das demais espécies, enquanto _versicolor_ e _virginica_ apresentam maior distinção do que na PCA linear. Essa separação ocorre sobretudo na segunda componente, visto que os centróides das duas espécies quase coincidem na primeira (−0,36 e −0,42), mas se afastam na segunda (−0,36 e 0,34). Nas métricas complementares, a silhueta no plano é de 0,607, superior à da PCA linear (0,534), mas superior também às do t-SNE (0,508) e do UMAP (0,541). Já a trustworthiness com dez vizinhos cai para 0,938, contra 0,983 na PCA. Portanto, nota-se que essa representação introduziu vizinhos artificiais, indicando uma distorção na estrutura, apesar da separação melhor.
 
   == t-SNE
 
@@ -507,10 +477,10 @@
       table.hline(),
       table.header([*Perplexidade*], [*Silhouette*], [*Divergência KL*], [*Iterações*], [*Trustworthiness*]),
       table.hline(),
-      [5], [0,558], [0,338], [999], [0,982],
-      [10], [0,610], [0,280], [999], [0,987],
-      [20], [0,629], [0,179], [999], [0,990],
-      [30], [0,632], [0,119], [999], [0,990],
+      [5], [0,267], [0,330], [999], [0,981],
+      [10], [0,455], [0,309], [999], [0,985],
+      [20], [0,508], [0,195], [999], [0,990],
+      [30], [0,483], [0,164], [999], [0,989],
       table.hline(),
     ),
     caption: [t-SNE com as espécies reais.],
@@ -519,7 +489,7 @@
 
   A silhueta cresce com a perplexidade (@fig:tsne-comp), com ganhos decrescentes: 0,052 de 5 para 10, 0,019 de 10 para 20 e 0,003 de 20 para 30. A divergência KL diminui continuamente de 0,338 para 0,119, mas seus valores não são estritamente comparáveis entre perplexidades. Portanto, ela foi usada apenas como informação complementar, e a configuração foi selecionada pela silhueta.
 
-  Na análise de estabilidade da perplexidade 30, as sementes de 0 a 9 produziram silhueta média de 0,632 e trustworthiness média de 0,990, ambas sem desvio padrão amostral relevante. Esses resultados indicam estabilidade das métricas nesse conjunto de execuções, mas não avaliam a robustez em novas amostras ou configurações.
+  Na análise de estabilidade da perplexidade 30, as sementes de 0 a 9 produziram silhueta média de 0,483 e trustworthiness média de 0,989, sem variação observável entre as sementes. Esses resultados indicam estabilidade das métricas nesse conjunto de execuções, mas não avaliam a robustez em novas amostras ou configurações.
 
   #figure(
     image("../imagens/tsne_perplexity_comparison.png", width: 100%),
@@ -533,9 +503,7 @@
     caption: [t-SNE: embeddings bidimensionais para as perplexidades 5, 10, 20 e 30, coloridos pela espécie real.],
   ) <fig:tsne-emb>
 
-  Com os atributos padronizados, a melhor configuração passou a ser a perplexidade 20, com silhueta 0,508, divergência KL 0,195 e trustworthiness 0,990. Na análise de dez sementes com perplexidade 30, a silhueta média foi 0,483 e a trustworthiness média 0,989, abaixo dos respectivos valores sem normalização (0,632 e 0,990). Portanto, a normalização teve pouco efeito na preservação de vizinhança, mas reduziu a separação das espécies no embedding.
-
-  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta mede a separação das espécies reais no plano e não a qualidade de um agrupamento, por isso não é comparável às silhuetas dos métodos de agrupamento. Já a trustworthiness, mede a preservação dos dez vizinhos mais próximos sendo uma métrica complementar.   A comparação principal foi feita com a semente 42 e atributos padronizados.
+  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta mede a separação das espécies reais no plano e não a qualidade de um agrupamento, por isso não é comparável às silhuetas dos métodos de agrupamento. Já a trustworthiness mede a preservação dos dez vizinhos mais próximos e é uma métrica complementar.
   
   == UMAP
 
@@ -549,17 +517,17 @@
       table.hline(),
       table.header([*`n_neighbors`*], [*`min_dist` = 0,0*], [*`min_dist` = 0,1*], [*`min_dist` = 0,5*]),
       table.hline(),
-      [5], [0,606], [0,611], [0,614],
-      [10], [*0,675*], [0,651], [0,579],
-      [15], [0,623], [0,662], [0,610],
-      [30], [0,668], [0,656], [0,631],
+      [5], [0,304], [0,308], [0,291],
+      [10], [0,533], [0,513], [0,489],
+      [15], [0,530], [0,520], [0,509],
+      [30], [*0,541*], [0,537], [0,479],
       table.hline(),
     ),
     caption: [Silhueta por configuração. Em destaque, o maior valor.],
     kind: table,
   ) <tab:umap>
 
-  A silhueta variou entre 0,579 (`n_neighbors` = 10 e `min_dist` = 0,5) e 0,675 (`n_neighbors` = 10 e `min_dist` = 0,0), conforme a @fig:umap-sil. Com `min_dist` = 0,5, as silhuetas ficaram entre 0,579 e 0,631 para `n_neighbors` ≥ 10, enquanto as configurações com `n_neighbors` = 5 ficaram próximas (0,606--0,614). A trustworthiness com dez vizinhos permaneceu elevada em todas as configurações (0,976--0,982).
+  A silhueta variou entre 0,291 (`n_neighbors` = 5 e `min_dist` = 0,5) e 0,541 (`n_neighbors` = 30 e `min_dist` = 0,0), conforme a @fig:umap-sil. As configurações com `n_neighbors` ≥ 10 produziram separações maiores que as configurações com 5 vizinhos. A trustworthiness com dez vizinhos variou entre 0,971 e 0,980.
 
   A @tab:umap-sementes resume a estabilidade das quatro melhores configurações pela silhueta obtida com a semente 42, avaliadas em dez sementes.
 
@@ -573,17 +541,17 @@
         [*`n_neighbors`*], [*`min_dist`*], [*Silhueta média*], [*DP silhueta*], [*Trustworthiness média (DP)*]
       ),
       table.hline(),
-      [10], [0,0], [0,658], [0,016], [0,978 (0,002)],
-      [30], [0,0], [0,664], [0,012], [0,979 (0,001)],
-      [15], [0,1], [0,643], [0,016], [0,979 (0,001)],
-      [30], [0,1], [0,645], [0,011], [0,980 (0,001)],
+      [15], [0,0], [0,544], [0,017], [0,975 (0,002)],
+      [10], [0,0], [0,541], [0,027], [0,975 (0,002)],
+      [30], [0,0], [0,539], [0,012], [0,977 (0,002)],
+      [30], [0,1], [0,533], [0,007], [0,977 (0,002)],
       table.hline(),
     ),
     caption: [Estabilidade das quatro melhores configurações em dez sementes (0 a 9). Os desvios são padrões amostrais.],
     kind: table,
   ) <tab:umap-sementes>
 
-  Entre essas configurações, `n_neighbors` = 30 e `min_dist` = 0,0 obteve a maior silhueta média (0,664 ± 0,012), seguida por `n_neighbors` = 10 e `min_dist` = 0,0 (0,658 ± 0,016). A diferença é pequena, assim como o desvio padrão das quatro configurações (0,011--0,016), com trustworthiness média entre 0,978 e 0,980. Os resultados indicam estabilidade satisfatória, sem uma vantagem expressiva de uma única configuração.
+  Entre essas configurações, `n_neighbors` = 15 e `min_dist` = 0,0 obteve a maior silhueta média (0,544 ± 0,017), seguida por `n_neighbors` = 10 e `min_dist` = 0,0 (0,541 ± 0,027). A diferença é pequena, com trustworthiness média entre 0,975 e 0,977. Os resultados indicam estabilidade satisfatória, sem uma vantagem expressiva de uma única configuração.
 
   #figure(
     image("../imagens/umap_parameter_comparison.png", width: 100%),
@@ -596,7 +564,5 @@
     image("../imagens/umap_embeddings_parameters.png", width: 100%),
     caption: [UMAP: embeddings bidimensionais para as 12 combinações de `n_neighbors` e `min_dist`, coloridos pela espécie real.],
   ) <fig:umap-emb>
-
-  Após a padronização, a configuração de maior silhueta foi `n_neighbors` = 30 e `min_dist` = 0,0, com silhueta 0,541 e trustworthiness 0,978. Na análise de estabilidade das quatro melhores configurações, a melhor média foi 0,544, contra 0,664 sem normalização; a trustworthiness média foi 0,975. A preservação local permaneceu semelhante, mas a separação entre espécies diminuiu.
 
 ]
