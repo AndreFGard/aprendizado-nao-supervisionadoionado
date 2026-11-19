@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
+from scipy.cluster.hierarchy import fcluster
 
 from apns import metrics
 from apns.models import (
@@ -453,22 +454,6 @@ def export_kernel_fuzzy_kmeans_results(
         tol=tol,
     )
     model.fit(x)
-    clusters_fig = plot_cluster_assignments(
-        x,
-        model.labels_,
-        "Kernel Fuzzy K-Means: melhor agrupamento",
-    )
-    _save_figure(
-        clusters_fig,
-        figures_dir / "kernel_fuzzy_kmeans_clusters.png",
-    )
-
-    membership_fig = plot_membership_degrees(model.membership_)
-    _save_figure(
-        membership_fig,
-        figures_dir / "kernel_fuzzy_kmeans_memberships.png",
-    )
-
     cluster_species = (
         pd.DataFrame({"cluster": model.labels_, "species": y.to_numpy()})
         .groupby("cluster")["species"]
@@ -496,7 +481,7 @@ def export_kernel_fuzzy_kmeans_results(
         k_star_clusters_fig,
         figures_dir / (
             f"kernel_fuzzy_kmeans_k{int(best_result['k'])}"
-            "_ari_clusters.png"
+            "_silhouette_clusters.png"
         ),
     )
 
@@ -512,7 +497,7 @@ def export_kernel_fuzzy_kmeans_results(
         k_star_membership_fig,
         figures_dir / (
             f"kernel_fuzzy_kmeans_k{int(best_result['k'])}"
-            "_ari_memberships.png"
+            "_silhouette_memberships.png"
         ),
     )
 
@@ -526,7 +511,7 @@ def export_kernel_fuzzy_kmeans_results(
     )
     contingency.to_csv(
         tables_dir
-        / f"kernel_fuzzy_kmeans_k{int(best_result['k'])}_ari_contingency.csv"
+        / f"kernel_fuzzy_kmeans_k{int(best_result['k'])}_silhouette_contingency.csv"
     )
 
     membership_table = pd.DataFrame(
@@ -539,7 +524,7 @@ def export_kernel_fuzzy_kmeans_results(
     membership_table.insert(0, "sample", range(len(membership_table)))
     membership_table.to_csv(
         tables_dir
-        / f"kernel_fuzzy_kmeans_k{int(best_result['k'])}_ari_membership.csv",
+        / f"kernel_fuzzy_kmeans_k{int(best_result['k'])}_silhouette_membership.csv",
         index=False,
     )
 
@@ -599,21 +584,49 @@ def export_hierarchical_results(
     model = hierarchical.HierarchicalCentroid.create(n_clusters=k_star)
     model.fit(x)
 
-    k_star_labels = model.get_clusters(k=k_star)
-    cluster_species = (
-        pd.DataFrame({"cluster": k_star_labels, "species": y.to_numpy()})
-        .groupby("cluster")["species"]
-        .agg(lambda values: values.mode().iloc[0])
+    cut_comparison = []
+    for k in range(2, max_n_cluster + 1):
+        reconstructed_labels = model.get_clusters(k=k)
+        fcluster_labels = fcluster(
+            model.linkage_matrix_,
+            k,
+            criterion="maxclust",
+        )
+        cut_comparison.append(
+            {
+                "k": k,
+                "ari_reconstructed_vs_fcluster": metrics.calcular_ari(
+                    reconstructed_labels,
+                    fcluster_labels,
+                ),
+            }
+        )
+    _save_table(
+        pd.DataFrame(cut_comparison),
+        tables_dir,
+        "hierarchical_cut_comparison.csv",
     )
+
+    k_star_labels = model.get_clusters(k=k_star)
     species_names = {
         "Iris-setosa": "Setosa",
         "Iris-versicolor": "Versicolor",
         "Iris-virginica": "Virginica",
     }
-    k_star_cluster_names = {
-        int(cluster): species_names[str(species)]
-        for cluster, species in cluster_species.items()
-    }
+    cluster_species = pd.DataFrame(
+        {"cluster": k_star_labels, "species": y.to_numpy()}
+    )
+    k_star_cluster_names = {}
+    for cluster, observations in cluster_species.groupby("cluster"):
+        present_species = set(observations["species"])
+        if present_species == {"Iris-versicolor", "Iris-virginica"}:
+            k_star_cluster_names[int(cluster)] = "Versicolor + Virginica"
+        elif len(present_species) == 1:
+            k_star_cluster_names[int(cluster)] = species_names[
+                next(iter(present_species))
+            ]
+        else:
+            k_star_cluster_names[int(cluster)] = "Misto"
     k_star_clusters_fig = plot_cluster_assignments(
         x,
         k_star_labels,

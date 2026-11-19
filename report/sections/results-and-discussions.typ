@@ -164,12 +164,12 @@
   ) <tab:kfkm-k2-contingencia>
 
   #figure(
-    image("../imagens/kernel_fuzzy_kmeans_k2_ari_clusters.png", width: 100%),
+    image("../imagens/kernel_fuzzy_kmeans_k2_silhouette_clusters.png", width: 100%),
     caption: [Melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2 = 1,0$), projetada em `petal_length` × `petal_width`.],
   ) <fig:kfkm-k2-clusters>
 
   #figure(
-    image("../imagens/kernel_fuzzy_kmeans_k2_ari_memberships.png", width: 100%),
+    image("../imagens/kernel_fuzzy_kmeans_k2_silhouette_memberships.png", width: 100%),
     caption: [Graus de pertinência da melhor configuração por silhueta com $k = 2$.],
   ) <fig:kfkm-k2-pert>
 
@@ -249,20 +249,38 @@
     caption: [Dendrograma truncado do agrupamento hierárquico (Centroid Linkage, distância euclidiana), com linha de corte para a partição em $k^* = 2$.],
   ) <fig:hier-dend>
 
-  Para $k = 2$, a partição separa a _setosa_ (50 observações) das demais espécies (100 observações), a mesma partição obtida pela Mistura Gaussiana, com silhueta de 0,580 e ARI de 0,568. A silhueta elevada reflete a separação da _setosa_, e o ARI é moderado porque _versicolor_ e _virginica_ permanecem juntas.
+  Para $k = 2$, a partição separa a _setosa_ (50 observações) das demais espécies (100 observações), a mesma partição obtida pela Mistura Gaussiana, com silhueta de 0,580 e ARI de 0,568. A silhueta elevada reflete a separação da _setosa_, e o ARI é moderado porque _versicolor_ e _virginica_ permanecem juntas em um único grupo, denominado `"Versicolor + Virginica"`.
 
-  Para $k = 3$, a _setosa_ permanece isolada e as demais observações são divididas em grupos menores, com silhueta de 0,479 e ARI de 0,562. A separação entre _versicolor_ e _virginica_ permanece limitada.
+  Para $k = 3$, a _setosa_ permanece isolada. Um segundo grupo contém as 50 _versicolor_ e 47 das 50 _virginica_; o terceiro grupo contém as 3 _virginica_ restantes. A silhueta é 0,479 e o ARI é 0,562.
 
   #figure(
     image("../imagens/hierarchical_kstar_petal_clusters.png", width: 82%),
-    caption: [Centroid Linkage com $k^* = 2$, projetado em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo.],
+    caption: [Centroid Linkage com $k^* = 2$, projetado em `petal_length` × `petal_width`; o segundo grupo reúne majoritariamente _versicolor_ e _virginica_ e é identificado como `"Versicolor + Virginica"` por não haver maioria única de espécie.],
   ) <fig:hier-kstar-clusters>
 
-  Como o Centroid Linkage não é monotônico, o `cut_tree` pode retornar menos rótulos que o $k$ solicitado. Por isso, as partições desta análise foram reconstruídas a partir das primeiras $n-k$ fusões, garantindo exatamente $k$ grupos.
+  Como o Centroid Linkage não é monotônico, o corte realizado pelo `cut_tree` ou por `fcluster` pode não corresponder diretamente à reconstrução baseada no número de fusões em toda a faixa de $k$. Nesta análise, as partições foram reconstruídas a partir das primeiras $n-k$ fusões, garantindo exatamente $k$ grupos. A reconstrução manual foi comparada com `fcluster(..., criterion = "maxclust")`; o ARI entre os dois métodos foi 1,0 para $k in {2,3,4,5}$, indicando equivalência prática nesta base.
 
-  Para $k = 4$, a silhueta é 0,406 e o ARI é 0,552. Para $k = 5$, são obtidos 0,374 e 0,551, respectivamente. As subdivisões ocorrem principalmente na região de _versicolor_ e _virginica_, e ambas as partições são efetivamente diferentes da configuração com $k = 3$.
+  #figure(
+    table(
+      columns: 2,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*$k$*], [*ARI reconstrução × fcluster*]),
+      table.hline(),
+      [2], [1,000],
+      [3], [1,000],
+      [4], [1,000],
+      [5], [1,000],
+      table.hline(),
+    ),
+    caption: [Concordância entre a reconstrução pelas primeiras $n-k$ fusões e o corte por `fcluster` no Centroid Linkage.],
+    kind: table,
+  ) <tab:hier-cut>
 
-  Considerando as partições efetivamente distintas, a silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,580), enquanto o ARI permanece máximo em $k = 3$ (0,562). A silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI reconhece a dificuldade de separar _versicolor_ e _virginica_. Por fim, como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada.
+  Para $k = 4$, a silhueta é 0,406 e o ARI é 0,552. Neste corte, uma observação de _setosa_ se separa das outras 49, enquanto as espécies _versicolor_ e _virginica_ também permanecem divididas em grupos mistos. Para $k = 5$, são obtidos silhueta 0,374 e ARI 0,551.
+
+  A silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,580). O ARI também é máximo em $k = 2$ (0,568), seguido de $k = 3$ (0,562). Assim, a silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI confirma que dividir novamente essa região não melhora o acordo externo. Como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada; não foram realizados bootstrap ou intervalos de incerteza.
 
   == DBSCAN
 
