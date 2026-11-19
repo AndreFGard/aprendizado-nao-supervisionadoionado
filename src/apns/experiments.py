@@ -41,13 +41,10 @@ from apns.visualization import (
 def _prepare_results_directories(
     results_dir: Path | None,
 ) -> tuple[Path, Path]:
-    if results_dir is None:
-        results_dir = Path(__file__).resolve().parents[2] / "results"
-    else:
-        results_dir = Path(results_dir)
-
-    tables_dir = results_dir / "tables"
-    figures_dir = results_dir / "figures"
+    del results_dir
+    report_dir = Path(__file__).resolve().parents[2] / "report"
+    tables_dir = report_dir / "tables"
+    figures_dir = report_dir / "imagens"
     tables_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
     return tables_dir, figures_dir
@@ -408,12 +405,18 @@ def export_kernel_fuzzy_kmeans_results(
         .pipe(lambda indices: results.loc[indices])
         .reset_index(drop=True)
     )
+    _save_table(
+        best_per_configuration,
+        tables_dir,
+        "kernel_fuzzy_kmeans_best_per_configuration.csv",
+    )
+
     best_by_k = (
-        best_per_configuration
-        .loc[
-            best_per_configuration.groupby("k", sort=True)["objective"]
-            .idxmin()
-        ]
+        best_per_configuration.sort_values(
+            ["k", "silhouette", "m", "sigma2"],
+            ascending=[True, False, True, True],
+        )
+        .drop_duplicates("k")
         .sort_values("k")
         .reset_index(drop=True)
     )
@@ -423,7 +426,20 @@ def export_kernel_fuzzy_kmeans_results(
         figures_dir / "kernel_fuzzy_kmeans_silhouette.png",
     )
 
-    best_result = _select_best_row(best_by_k, metric="silhouette")
+    best_result = (
+        best_by_k.sort_values(
+            ["silhouette", "k", "m", "sigma2"],
+            ascending=[False, True, True, True],
+        )
+        .iloc[0]
+    )
+    print(
+        f"Kernel Fuzzy K-Means: k*={int(best_result['k'])}, "
+        f"m={float(best_result['m']):.1f}, "
+        f"sigma2={best_result['sigma2']}, "
+        f"silhueta={float(best_result['silhouette']):.4f}, "
+        f"ARI={float(best_result['ari']):.4f}"
+    )
     best_sigma2 = best_result["sigma2"]
     if pd.isna(best_sigma2):
         best_sigma2 = None
@@ -478,7 +494,10 @@ def export_kernel_fuzzy_kmeans_results(
     )
     _save_figure(
         k_star_clusters_fig,
-        figures_dir / "kernel_fuzzy_kmeans_k3_ari_clusters.png",
+        figures_dir / (
+            f"kernel_fuzzy_kmeans_k{int(best_result['k'])}"
+            "_ari_clusters.png"
+        ),
     )
 
     k_star_membership_fig = plot_membership_degrees(
@@ -491,7 +510,10 @@ def export_kernel_fuzzy_kmeans_results(
     )
     _save_figure(
         k_star_membership_fig,
-        figures_dir / "kernel_fuzzy_kmeans_k3_ari_memberships.png",
+        figures_dir / (
+            f"kernel_fuzzy_kmeans_k{int(best_result['k'])}"
+            "_ari_memberships.png"
+        ),
     )
 
     contingency = (
@@ -502,7 +524,10 @@ def export_kernel_fuzzy_kmeans_results(
         .rename(index=species_names)
         .rename(columns=k_star_cluster_names)
     )
-    contingency.to_csv(tables_dir / "kernel_fuzzy_kmeans_k3_ari_contingency.csv")
+    contingency.to_csv(
+        tables_dir
+        / f"kernel_fuzzy_kmeans_k{int(best_result['k'])}_ari_contingency.csv"
+    )
 
     membership_table = pd.DataFrame(
         model.membership_,
@@ -513,7 +538,8 @@ def export_kernel_fuzzy_kmeans_results(
     )
     membership_table.insert(0, "sample", range(len(membership_table)))
     membership_table.to_csv(
-        tables_dir / "kernel_fuzzy_kmeans_k3_ari_membership.csv",
+        tables_dir
+        / f"kernel_fuzzy_kmeans_k{int(best_result['k'])}_ari_membership.csv",
         index=False,
     )
 

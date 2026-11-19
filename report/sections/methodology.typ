@@ -49,7 +49,11 @@
 
   Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, $"m" in {1.5, 2.0, 2.5}$ e $sigma^2 in {"automático", 0.5, 1.0, 2.0}$. Na configuração automática, utilizada quando $sigma^2$ = None, o valor foi definido pela variância global dos dados. Esse planejamento resultou em 48 combinações de parâmetros. Cada combinação foi executada dez vezes, com sementes distintas, totalizando 480 execuções experimentais, cada uma com cinco inicializações internas.
 
-  Para cada execução, foram registrados o Silhouette Score, o ARI, o valor final da função objetivo e o número de iterações realizadas. Para cada valor de $k$, a menor função objetivo determinou uma única partição entre as combinações de parâmetros e inicializações. A silhueta nessa partição foi usada apenas para construir o gráfico Silhouette × $k$ e escolher $k^* = arg max_k "Sil"(k)$. O ARI foi calculado somente para a partição final em $k^*$ e não participou da seleção da execução ou de $k$. O modelo foi ajustado novamente com os parâmetros e a semente selecionados para gerar as visualizações do agrupamento, dos graus de pertinência e da convergência da função objetivo.
+  Para cada combinação $(k, m, sigma^2)$, as dez execuções foram ordenadas pela menor função objetivo, respeitando a escala própria dessa configuração. Entre as cinco inicializações internas de cada execução, manteve-se aquela de menor objetivo. Assim, o objetivo selecionou apenas a melhor semente dentro de uma mesma combinação de parâmetros, não entre valores diferentes de $m$ ou $sigma^2$.
+
+  A melhor execução de cada combinação foi mantida para o cálculo da silhueta. Para cada valor de $k$, compararam-se as combinações de $m$ e $sigma^2$ pela maior silhueta, obtendo-se uma única configuração por $k$. O modelo final foi selecionado pela maior silhueta entre esses valores de $k$, isto é, $k^* = arg max_k "Sil"(k)$. O objetivo não foi usado para comparar configurações diferentes, pois sua escala varia com $m$ e com a largura do kernel.
+
+  O ARI foi registrado como métrica complementar na melhor execução de cada combinação e em todas as partições agregadas por $k$, mas não participou da escolha de $m$, $sigma^2$, $k$ ou da melhor semente. O modelo foi ajustado novamente com os parâmetros e a semente selecionados para gerar as visualizações do agrupamento, dos graus de pertinência e da convergência da função objetivo.
 
   == Misturas gaussianas com EM
 

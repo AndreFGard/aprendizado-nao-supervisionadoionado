@@ -117,81 +117,70 @@
 
   == Kernel Fuzzy K-Means
 
-  Foram realizadas 480 execuções: 48 combinações de $k in {2, 3, 4, 5}$, $m in {1,5; 2,0; 2,5}$ e $sigma^2 in {"automático"; 0,5; 1,0; 2,0}$, com dez sementes cada. As sementes produziram soluções idênticas em 34 combinações; as variações ocorreram principalmente em $k >= 3$, com $sigma^2 = 0,5$ ou $m = 2,5$. A @tab:kfkm resume os resultados agregados por $k$.
+  Foram realizadas 480 execuções: 48 combinações de $k in {2, 3, 4, 5}$, $m in {1,5; 2,0; 2,5}$ e $sigma^2 in {"automático"; 0,5; 1,0; 2,0}$, com dez sementes por combinação e cinco inicializações internas por execução. Em cada combinação, a menor função objetivo entre as dez sementes identificou a melhor execução. Na @tab:kfkm, essa melhor execução é apresentada por $k$, junto da combinação $(m, sigma^2)$ de maior silhueta para aquele $k$.
 
   #figure(
     table(
-      columns: 5,
+      columns: 6,
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*$k$*], [*Sil. média*], [*Sil. mín.*], [*ARI média*], [*ARI máx.*]),
+      table.header([*$k$*], [*$m$*], [*$sigma^2$*], [*Silhouette*], [*ARI*], [*Objetivo*]),
       table.hline(),
-      [2], [0,580], [0,580], [0,568], [0,568],
-      [3], [0,456], [0,456], [0,652], [0,652],
-      [4], [0,258], [0,258], [0,612], [0,612],
-      [5], [0,286], [0,286], [0,487], [0,487],
+      [2], [1,5], [1,0], [0,580], [0,568], [76,72],
+      [3], [2,5], [0,5], [0,540], [0,529], [24,87],
+      [4], [1,5], [2,0], [0,398], [0,587], [34,46],
+      [5], [2,5], [1,0], [0,374], [0,495], [10,29],
       table.hline(),
     ),
-    caption: [Kernel Fuzzy K-Means: considerando todas as combinações de $m$, $sigma^2$ e sementes.],
+    caption: [Kernel Fuzzy K-Means: melhor combinação $(m, sigma^2)$ por $k$, segundo a silhueta, após a seleção da melhor semente pela função objetivo dentro de cada combinação.],
     kind: table,
   ) <tab:kfkm>
 
-  Para cada valor de $k$, foi selecionada pela menor função objetivo uma única partição entre as dez inicializações e combinações de parâmetros. A silhueta dessas partições decresce após $k = 2$: 0,580 em $k = 2$, 0,456 em $k = 3$, 0,258 em $k = 4$ e 0,286 em $k = 5$. Assim, $k^* = 2$ pela silhueta. O ARI da partição final é 0,568.
-
-  Pela maior silhueta entre as partições selecionadas por objetivo, a configuração final foi $k = 2$, $m = 2,5$ e $sigma^2 = 2,0$, com silhueta de 0,5802 e ARI de 0,5681. Essa solução separa a _setosa_ das demais espécies. Na @fig:kfkm-pert, a _setosa_ apresenta pertinência elevada a um agrupamento, enquanto as espécies _versicolor_ e _virginica_ mostram pertinências intermediárias na região de fronteira. A atribuição pelo maior grau de pertinência produz a partição exibida na @fig:kfkm-clusters.
+  A silhueta máxima entre as configurações ocorre em $k = 2$, com $m = 1,5$ e $sigma^2 = 1,0$. A configuração final apresenta silhueta de 0,5802 e ARI de 0,5681. As demais curvas decrescem até $k = 5$; a única diferença relevante é $k = 4$, cujo ARI é 0,587, mas que não supera a silhueta de $k = 2$. O ARI foi utilizado somente como avaliação externa e não participou da escolha da configuração ou de $k^*$.
 
   #figure(
-    image("../imagens/kernel_fuzzy_kmeans_memberships.png", width: 100%),
-    caption: [Graus de pertinência da melhor configuração por silhueta ($k = 2$, $m = 2,5$, $sigma^2 = 2,0$).],
-  ) <fig:kfkm-pert>
+    image("../imagens/kernel_fuzzy_kmeans_silhouette.png", width: 100%),
+    caption: [Silhouette por $k$ do Kernel Fuzzy K-Means, mostrando a melhor combinação $(m, sigma^2)$ por cada valor de $k$.],
+  ) <fig:kfkm-sil>
 
-  #figure(
-    image("../imagens/kernel_fuzzy_kmeans_clusters.png", width: 100%),
-    caption: [Melhor agrupamento por silhueta, projetado em `sepal_length` e `sepal_width`.],
-  ) <fig:kfkm-clusters>
-
-  A @fig:kfkm-conv mostra a convergência da configuração selecionada. Como os valores da função objetivo dependem de $m$ e de $sigma^2$, eles não são usados para comparar configurações.
-
-  #figure(
-    image("../imagens/kernel_fuzzy_kmeans_objective_convergence.png", width: 100%),
-    caption: [Convergência da função objetivo da melhor configuração por silhueta.],
-  ) <fig:kfkm-conv>
-
-  Os ARI das outras partições por $k$ são apresentados somente como avaliação externa: 0,652 em $k = 3$, 0,612 em $k = 4$ e 0,487 em $k = 5$. Essas métricas não participam da escolha de $k^*$ nem da escolha da execução. Valores extremos dos parâmetros produziram instabilidade em algumas execuções.
-
-  Na partição final em $k^* = 2$, a atribuição pelo maior grau de pertinência reproduz a separação da _setosa_ e concentra as confusões entre _versicolor_ e _virginica_ (@tab:kfkm-k3-contingencia).
+  A configuração final separa perfeitamente as 50 observações de _setosa_ das demais espécies, conforme a @tab:kfkm-k2-contingencia. As confusões ficam concentradas entre _versicolor_ e _virginica_.
 
   #figure(
     table(
-      columns: 4,
+      columns: 3,
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*Espécie*], [*Virginica*], [*Versicolor*], [*Setosa*]),
+      table.header([*Espécie*], [*Setosa*], [*Versicolor*]),
       table.hline(),
-      [Setosa], [0], [0], [50],
-      [Versicolor], [4], [46], [0],
-      [Virginica], [38], [12], [0],
+      [Setosa], [50], [0],
+      [Versicolor], [0], [50],
+      [Virginica], [0], [50],
       table.hline(),
     ),
-    caption: [Contingência entre espécies reais e grupos da melhor configuração por ARI com $k = 3$.],
+    caption: [Contingência entre espécies reais e grupos da melhor configuração por silhueta com $k = 2$.],
     kind: table,
-  ) <tab:kfkm-k3-contingencia>
+  ) <tab:kfkm-k2-contingencia>
 
   #figure(
-    image("../imagens/kernel_fuzzy_kmeans_k3_ari_clusters.png", width: 100%),
-    caption: [Melhor configuração por ARI ($k = 3$), projetada em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo.],
-  ) <fig:kfkm-k3-clusters>
+    image("../imagens/kernel_fuzzy_kmeans_k2_ari_clusters.png", width: 100%),
+    caption: [Melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2 = 1,0$), projetada em `petal_length` × `petal_width`.],
+  ) <fig:kfkm-k2-clusters>
 
   #figure(
-    image("../imagens/kernel_fuzzy_kmeans_k3_ari_memberships.png", width: 100%),
-    caption: [Graus de pertinência da melhor configuração por ARI com $k = 3$, agrupados pelo nome da espécie majoritária.],
-  ) <fig:kfkm-k3-pert>
+    image("../imagens/kernel_fuzzy_kmeans_k2_ari_memberships.png", width: 100%),
+    caption: [Graus de pertinência da melhor configuração por silhueta com $k = 2$.],
+  ) <fig:kfkm-k2-pert>
 
-  Na matriz de pertinências, 116 das 150 observações têm pertinência máxima abaixo de 0,6. Esse valor quantifica uma fronteira ampla de atribuição incerta, principalmente entre _versicolor_ e _virginica_; a _setosa_ apresenta atribuição mais definida. A configuração obtém silhueta de 0,5313 e ARI de 0,8178.
+  A @fig:kfkm-conv mostra a convergência da função objetivo da configuração final. O objetivo diminui até estabilizar em 76,7187 após 18 iterações. Como os valores dependem de $m$ e de $sigma^2$, foram usados apenas para selecionar a melhor semente dentro de cada configuração e não para ordenar configurações diferentes.
 
-  Em síntese, o Kernel Fuzzy K-Means separa a _setosa_ das demais espécies e apresenta maior dificuldade na fronteira entre _versicolor_ e _virginica_.
+  #figure(
+    image("../imagens/kernel_fuzzy_kmeans_objective_convergence.png", width: 100%),
+    caption: [Convergência da função objetivo da melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2 = 1,0$).],
+  ) <fig:kfkm-conv>
+
+  Em síntese, a busca atual adapta o procedimento do Fuzzy K-Means: dentro de cada tripla $(k, m, sigma^2)$, a função objetivo escolhe a melhor dentre as dez sementes; em seguida, a silhueta compara as combinações de parâmetros e seleciona o modelo final. Essa abordagem evita que diferenças de escala em $J_m$ decorrentes de $m$ ou $sigma^2$ favoreçam diretamente uma configuração.
 
   == Misturas gaussianas com EM
 
