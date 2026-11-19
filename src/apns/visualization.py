@@ -60,6 +60,19 @@ def plot_kmedoids_silhouette(df_resultados: pd.DataFrame) -> Figure:
     return figure
 
 
+def plot_silhouette_by_k(best_by_k: pd.DataFrame, model_name: str) -> Figure:
+    ordered = best_by_k.dropna(subset=["silhouette"]).sort_values("k")
+    figure, axis = plt.subplots(figsize=(8, 5))
+    axis.plot(ordered["k"], ordered["silhouette"], marker="o")
+    axis.set_xlabel("Número de clusters (k)")
+    axis.set_ylabel("Silhouette")
+    axis.set_title(f"{model_name}: Silhouette × k")
+    axis.set_xticks(range(1, int(best_by_k["k"].max()) + 1))
+    axis.grid()
+    figure.tight_layout()
+    return figure
+
+
 def plot_kmedoids_inertia(df_resultados: pd.DataFrame) -> Figure:
     figure, axis = plt.subplots(figsize=(8, 5))
     axis.plot(
@@ -305,6 +318,35 @@ def plot_umap_parameter_comparison(df_metrics: pd.DataFrame) -> Figure:
     axis.set_title("UMAP: silhueta por parâmetros")
     axis.grid(alpha=0.2)
     axis.legend()
+    figure.tight_layout()
+    return figure
+
+
+def plot_component_scatter(
+    embedding: np.ndarray,
+    labels: pd.Series,
+    x_label: str,
+    y_label: str,
+    title: str,
+) -> Figure:
+    """Dispersão 2D de um embedding, com os rótulos reais por cor."""
+    figure, axis = plt.subplots(figsize=(9, 6))
+    labels_array = labels.to_numpy()
+
+    for label in pd.unique(labels_array):
+        mask = labels_array == label
+        axis.scatter(
+            embedding[mask, 0],
+            embedding[mask, 1],
+            label=str(label),
+            alpha=0.8,
+        )
+
+    axis.set_title(title)
+    axis.set_xlabel(x_label)
+    axis.set_ylabel(y_label)
+    axis.legend()
+    axis.grid(alpha=0.2)
     figure.tight_layout()
     return figure
 

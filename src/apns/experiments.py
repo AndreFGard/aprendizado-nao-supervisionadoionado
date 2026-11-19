@@ -1,3 +1,4 @@
+import dataclasses
 import json
 from pathlib import Path
 
@@ -11,7 +12,9 @@ from apns.models import (
     dbscan,
     hierarchical,
     kernel_fuzzy_kmeans,
+    kernel_pca,
     kmedoids,
+    pca,
     treinable_model,
     tsne,
     umap,
@@ -38,13 +41,12 @@ def _prepare_results_directories(
     results_dir: Path | None,
 ) -> tuple[Path, Path]:
     if results_dir is None:
-        report_dir = Path(__file__).resolve().parents[2] / "report"
-        tables_dir = report_dir / "tables"
-        figures_dir = report_dir / "imagens"
+        results_dir = Path(__file__).resolve().parents[2] / "results"
     else:
         results_dir = Path(results_dir)
-        tables_dir = results_dir / "tables"
-        figures_dir = results_dir / "imagens"
+
+    tables_dir = results_dir / "tables"
+    figures_dir = results_dir / "figures"
     tables_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
     return tables_dir, figures_dir
@@ -71,20 +73,22 @@ def _select_best_row(
     valid_results = results.dropna(subset=[metric])
     if not valid_results.empty:
         return valid_results.loc[valid_results[metric].idxmax()]
-    if fallback_metric is not None:
-        valid_results = results.dropna(subset=[fallback_metric])
-        if not valid_results.empty:
-            return valid_results.loc[valid_results[fallback_metric].idxmin()]
+    assert fallback_metric is not None
+    valid_results = results.dropna(subset=[fallback_metric])
+    if not valid_results.empty:
+        return valid_results.loc[valid_results[fallback_metric].idxmin()]
+    raise ValueError(f"No valid mnetric for {metric} ")
+
 
 def evaluate_kmeanslike_model(
     x: pd.DataFrame,
     y: pd.Series,
-    model_cls: type[treinable_model.IPredictiveModel],
+    model_cls: type[treinable_model.IKMeansLikeModel],
     max_n_cluster: int = 5,
     max_iter: int = 10,
 ) -> pd.DataFrame:
     results = []
-    for k in range(2, max_n_cluster + 1):
+    for k in range(1, max_n_cluster + 1):
         for iteration in range(max_iter):
             model = model_cls.create(n_clusters=k, random_state=iteration)
             model.fit(x)
@@ -94,13 +98,76 @@ def evaluate_kmeanslike_model(
             results.append(
                 {
                     "model_name": model_cls.__name__,
+                    "objective_name": model_cls.objective_name,
                     "iter": iteration,
                     "k": k,
+                    "objective": model.compute_objective(x),
                     "silhouette": silhouette,
                     "ari": metrics.calcular_ari(y, clusters),
+                    "n_iter": model.n_iter,
                 }
             )
     return pd.DataFrame(results)
+
+
+@dataclasses.dataclass
+class PCAResult:
+    embedding: np.ndarray
+    variance: pd.DataFrame
+    components: pd.DataFrame
+
+
+def evaluate_pca_model(x: pd.DataFrame) -> PCAResult:
+    model = pca.PCA.create()
+    embedding = model.fit_transform(x)
+    ratios = model.explained_variance_ratio_
+    component_names = [f"PC{i}" for i in range(1, len(ratios) + 1)]
+
+    variance = pd.DataFrame(
+        {
+            "component": range(1, len(ratios) + 1),
+            "eigenvalue": model.explained_variance_,
+            "explained_variance_ratio": ratios,
+            "cumulative_ratio": np.cumsum(ratios),
+        }
+    )
+    components = pd.DataFrame(model.components_, columns=x.columns)
+    components.insert(0, "component", component_names)
+
+    return PCAResult(
+        embedding=embedding,
+        variance=variance,
+        components=components,
+    )
+
+
+@dataclasses.dataclass
+class KernelPCAResult:
+    embedding: np.ndarray
+    variance: pd.DataFrame
+
+
+def evaluate_kernel_pca_model(
+    x: pd.DataFrame,
+    kernel: str = "rbf",
+) -> KernelPCAResult:
+    model = kernel_pca.KernelPCA.create(kernel=kernel)
+    embedding = model.fit_transform(x)
+    eigenvalues = model.eigenvalues_
+    ratios = eigenvalues / eigenvalues.sum()
+
+    variance = pd.DataFrame(
+        {
+            "component": range(1, len(eigenvalues) + 1),
+            "kernel": kernel,
+            # default gamma
+            "gamma*": model.gamma_,
+            "eigenvalue": eigenvalues,
+            "explained_variance_ratio": ratios,
+            "cumulative_ratio": np.cumsum(ratios),
+        }
+    )
+    return KernelPCAResult(embedding=embedding, variance=variance)
 
 
 def evaluate_kernel_fuzzy_kmeans_model(
@@ -785,7 +852,7 @@ def evaluate_umap_model(
     min_dist: float = 0.1,
     random_state: int = 42,
 ) -> pd.DataFrame:
-    model, embedding = _fit_umap(
+    _model, embedding = _fit_umap(
         x=x,
         n_neighbors=n_neighbors,
         min_dist=min_dist,
@@ -834,7 +901,7 @@ def export_umap_results(
 
     for n_neighbors in n_neighbors_values:
         for min_dist in min_dist_values:
-            model, embedding = _fit_umap(
+            _model, embedding = _fit_umap(
                 x=x,
                 n_neighbors=n_neighbors,
                 min_dist=min_dist,
