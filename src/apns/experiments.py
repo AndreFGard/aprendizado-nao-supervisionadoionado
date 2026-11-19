@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
+from scipy.cluster.hierarchy import fcluster
 
 from apns import metrics
 from apns.models import (
@@ -41,13 +42,10 @@ from apns.visualization import (
 def _prepare_results_directories(
     results_dir: Path | None,
 ) -> tuple[Path, Path]:
-    if results_dir is None:
-        results_dir = Path(__file__).resolve().parents[2] / "results"
-    else:
-        results_dir = Path(results_dir)
-
-    tables_dir = results_dir / "tables"
-    figures_dir = results_dir / "figures"
+    del results_dir
+    report_dir = Path(__file__).resolve().parents[2] / "report"
+    tables_dir = report_dir / "tables"
+    figures_dir = report_dir / "imagens"
     tables_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
     return tables_dir, figures_dir
@@ -408,12 +406,18 @@ def export_kernel_fuzzy_kmeans_results(
         .pipe(lambda indices: results.loc[indices])
         .reset_index(drop=True)
     )
+    _save_table(
+        best_per_configuration,
+        tables_dir,
+        "kernel_fuzzy_kmeans_best_per_configuration.csv",
+    )
+
     best_by_k = (
-        best_per_configuration
-        .loc[
-            best_per_configuration.groupby("k", sort=True)["objective"]
-            .idxmin()
-        ]
+        best_per_configuration.sort_values(
+            ["k", "silhouette", "m", "sigma2"],
+            ascending=[True, False, True, True],
+        )
+        .drop_duplicates("k")
         .sort_values("k")
         .reset_index(drop=True)
     )
@@ -423,7 +427,20 @@ def export_kernel_fuzzy_kmeans_results(
         figures_dir / "kernel_fuzzy_kmeans_silhouette.png",
     )
 
-    best_result = _select_best_row(best_by_k, metric="silhouette")
+    best_result = (
+        best_by_k.sort_values(
+            ["silhouette", "k", "m", "sigma2"],
+            ascending=[False, True, True, True],
+        )
+        .iloc[0]
+    )
+    print(
+        f"Kernel Fuzzy K-Means: k*={int(best_result['k'])}, "
+        f"m={float(best_result['m']):.1f}, "
+        f"sigma2={best_result['sigma2']}, "
+        f"silhueta={float(best_result['silhouette']):.4f}, "
+        f"ARI={float(best_result['ari']):.4f}"
+    )
     best_sigma2 = best_result["sigma2"]
     if pd.isna(best_sigma2):
         best_sigma2 = None
@@ -437,22 +454,6 @@ def export_kernel_fuzzy_kmeans_results(
         tol=tol,
     )
     model.fit(x)
-    clusters_fig = plot_cluster_assignments(
-        x,
-        model.labels_,
-        "Kernel Fuzzy K-Means: melhor agrupamento",
-    )
-    _save_figure(
-        clusters_fig,
-        figures_dir / "kernel_fuzzy_kmeans_clusters.png",
-    )
-
-    membership_fig = plot_membership_degrees(model.membership_)
-    _save_figure(
-        membership_fig,
-        figures_dir / "kernel_fuzzy_kmeans_memberships.png",
-    )
-
     cluster_species = (
         pd.DataFrame({"cluster": model.labels_, "species": y.to_numpy()})
         .groupby("cluster")["species"]
@@ -478,7 +479,10 @@ def export_kernel_fuzzy_kmeans_results(
     )
     _save_figure(
         k_star_clusters_fig,
-        figures_dir / "kernel_fuzzy_kmeans_k3_ari_clusters.png",
+        figures_dir / (
+            f"kernel_fuzzy_kmeans_k{int(best_result['k'])}"
+            "_silhouette_clusters.png"
+        ),
     )
 
     k_star_membership_fig = plot_membership_degrees(
@@ -491,7 +495,10 @@ def export_kernel_fuzzy_kmeans_results(
     )
     _save_figure(
         k_star_membership_fig,
-        figures_dir / "kernel_fuzzy_kmeans_k3_ari_memberships.png",
+        figures_dir / (
+            f"kernel_fuzzy_kmeans_k{int(best_result['k'])}"
+            "_silhouette_memberships.png"
+        ),
     )
 
     contingency = (
@@ -502,7 +509,10 @@ def export_kernel_fuzzy_kmeans_results(
         .rename(index=species_names)
         .rename(columns=k_star_cluster_names)
     )
-    contingency.to_csv(tables_dir / "kernel_fuzzy_kmeans_k3_ari_contingency.csv")
+    contingency.to_csv(
+        tables_dir
+        / f"kernel_fuzzy_kmeans_k{int(best_result['k'])}_silhouette_contingency.csv"
+    )
 
     membership_table = pd.DataFrame(
         model.membership_,
@@ -513,7 +523,8 @@ def export_kernel_fuzzy_kmeans_results(
     )
     membership_table.insert(0, "sample", range(len(membership_table)))
     membership_table.to_csv(
-        tables_dir / "kernel_fuzzy_kmeans_k3_ari_membership.csv",
+        tables_dir
+        / f"kernel_fuzzy_kmeans_k{int(best_result['k'])}_silhouette_membership.csv",
         index=False,
     )
 
@@ -573,21 +584,49 @@ def export_hierarchical_results(
     model = hierarchical.HierarchicalCentroid.create(n_clusters=k_star)
     model.fit(x)
 
-    k_star_labels = model.get_clusters(k=k_star)
-    cluster_species = (
-        pd.DataFrame({"cluster": k_star_labels, "species": y.to_numpy()})
-        .groupby("cluster")["species"]
-        .agg(lambda values: values.mode().iloc[0])
+    cut_comparison = []
+    for k in range(2, max_n_cluster + 1):
+        reconstructed_labels = model.get_clusters(k=k)
+        fcluster_labels = fcluster(
+            model.linkage_matrix_,
+            k,
+            criterion="maxclust",
+        )
+        cut_comparison.append(
+            {
+                "k": k,
+                "ari_reconstructed_vs_fcluster": metrics.calcular_ari(
+                    reconstructed_labels,
+                    fcluster_labels,
+                ),
+            }
+        )
+    _save_table(
+        pd.DataFrame(cut_comparison),
+        tables_dir,
+        "hierarchical_cut_comparison.csv",
     )
+
+    k_star_labels = model.get_clusters(k=k_star)
     species_names = {
         "Iris-setosa": "Setosa",
         "Iris-versicolor": "Versicolor",
         "Iris-virginica": "Virginica",
     }
-    k_star_cluster_names = {
-        int(cluster): species_names[str(species)]
-        for cluster, species in cluster_species.items()
-    }
+    cluster_species = pd.DataFrame(
+        {"cluster": k_star_labels, "species": y.to_numpy()}
+    )
+    k_star_cluster_names = {}
+    for cluster, observations in cluster_species.groupby("cluster"):
+        present_species = set(observations["species"])
+        if present_species == {"Iris-versicolor", "Iris-virginica"}:
+            k_star_cluster_names[int(cluster)] = "Versicolor + Virginica"
+        elif len(present_species) == 1:
+            k_star_cluster_names[int(cluster)] = species_names[
+                next(iter(present_species))
+            ]
+        else:
+            k_star_cluster_names[int(cluster)] = "Misto"
     k_star_clusters_fig = plot_cluster_assignments(
         x,
         k_star_labels,
@@ -820,6 +859,29 @@ def export_dbscan_results(
 
     plots = plot_dbscan_metrics(all_results)
     _save_table(all_results, tables_dir, "dbscan_metrics.csv")
+    representative_eps_minpts = [
+        (0.3, 7),
+        (0.4, 3),
+        (0.5, 10),
+        (0.5, 15),
+        (0.6, 5),
+        (0.7, 5),
+        (1.0, 5),
+        (1.0, 10),
+        (1.0, 15),
+    ]
+    representative = all_results[
+        all_results.apply(
+            lambda row: (float(row["eps"]), int(row["minpts"]))
+            in representative_eps_minpts,
+            axis=1,
+        )
+    ].copy()
+    _save_table(
+        representative,
+        tables_dir,
+        "dbscan_representative_sensitivity.csv",
+    )
     _save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
     _save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
     _save_figure(plots.coverage_fig, figures_dir / "dbscan_coverage.png")
@@ -1178,7 +1240,10 @@ def export_umap_results(
     _save_table(results, tables_dir, "umap_metrics.csv")
 
     top_configurations = (
-        results.sort_values("silhouette", ascending=False)
+        results.sort_values(
+            ["trustworthiness", "silhouette"],
+            ascending=[False, False],
+        )
         .head(n_best_configurations)[["n_neighbors", "min_dist"]]
         .itertuples(index=False, name=None)
     )
@@ -1257,7 +1322,13 @@ def export_umap_results(
         figures_dir / "umap_parameter_comparison.png",
     )
 
-    best_result = _select_best_row(results, metric="silhouette")
+    best_result = (
+        results.sort_values(
+            ["trustworthiness", "silhouette"],
+            ascending=[False, False],
+        )
+        .iloc[0]
+    )
     embedding = embeddings[
         (int(best_result["n_neighbors"]), float(best_result["min_dist"]))
     ]
@@ -1278,9 +1349,11 @@ def export_umap_results(
 def comparar_algoritmos_por_silhueta(
     resultados: dict[str, pd.DataFrame],
 ) -> pd.DataFrame:
-    """Compara cada algoritmo pela configuração de maior silhueta."""
+    embedding_names = {"t-SNE", "TSNE", "UMAP"}
     comparacao = []
     for nome, resultados_modelo in resultados.items():
+        if nome in embedding_names:
+            continue
         if nome == "DBSCAN":
             eligible = resultados_modelo[
                 resultados_modelo["n_ruido"].le(10)
@@ -1307,6 +1380,8 @@ def comparar_algoritmos_por_silhueta(
                 "n_clusters": melhor.get("k", melhor.get("n_clusters")),
                 "silhouette": melhor["silhouette"],
                 "ari": melhor["ari"],
+                "noise": melhor.get("n_ruido"),
+                "coverage": melhor.get("cobertura"),
                 "metric": melhor.get("metric"),
                 "linkage": melhor.get("linkage"),
                 "m": melhor.get("m"),
@@ -1316,14 +1391,7 @@ def comparar_algoritmos_por_silhueta(
             }
         )
 
-    return (
-        pd.DataFrame(comparacao)
-        .sort_values(
-            "silhouette",
-            ascending=False,
-        )
-        .reset_index(drop=True)
-    )
+    return pd.DataFrame(comparacao)
 
 
 def export_comparacao_algoritmos(
