@@ -859,6 +859,29 @@ def export_dbscan_results(
 
     plots = plot_dbscan_metrics(all_results)
     _save_table(all_results, tables_dir, "dbscan_metrics.csv")
+    representative_eps_minpts = [
+        (0.3, 7),
+        (0.4, 3),
+        (0.5, 10),
+        (0.5, 15),
+        (0.6, 5),
+        (0.7, 5),
+        (1.0, 5),
+        (1.0, 10),
+        (1.0, 15),
+    ]
+    representative = all_results[
+        all_results.apply(
+            lambda row: (float(row["eps"]), int(row["minpts"]))
+            in representative_eps_minpts,
+            axis=1,
+        )
+    ].copy()
+    _save_table(
+        representative,
+        tables_dir,
+        "dbscan_representative_sensitivity.csv",
+    )
     _save_figure(plots.silhouette_fig, figures_dir / "dbscan_silhouette.png")
     _save_figure(plots.noise_fig, figures_dir / "dbscan_noise.png")
     _save_figure(plots.coverage_fig, figures_dir / "dbscan_coverage.png")

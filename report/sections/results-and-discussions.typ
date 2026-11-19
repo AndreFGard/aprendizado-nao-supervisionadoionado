@@ -309,29 +309,35 @@
 
   #figure(
     table(
-      columns: 6,
+      columns: 7,
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*`eps`*], [*`minpts`*], [*Grupos*], [*Ruído*], [*Silhouette*], [*ARI*]),
+      table.header([*`eps`*], [*`minpts`*], [*Grupos*], [*Ruído*], [*Cobertura*], [*Silhouette*], [*ARI*]),
       table.hline(),
-      [0,3], [7], [2], [128 (85,3%)], [0,634], [0,000],
-      [0,4], [3], [10], [39 (26,0%)], [0,418], [0,621],
-      [0,5], [15], [1], [127 (84,7%)], [--], [--],
-      [0,6], [5], [2], [26 (17,3%)], [0,641], [0,611],
-      [1,0], [5], [2], [3 (2,0%)], [0,594], [0,568],
+      [0,3], [7], [2], [128 (85,3%)], [14,7%], [0,634], [0,000],
+      [0,4], [3], [10], [39 (26,0%)], [74,0%], [0,418], [0,621],
+      [0,5], [10], [3], [89 (59,3%)], [40,7%], [0,710], [1,000],
+      [0,5], [15], [1], [127 (84,7%)], [15,3%], [--], [--],
+      [0,6], [5], [2], [26 (17,3%)], [82,7%], [0,641], [0,611],
+      [0,7], [5], [2], [8 (5,3%)], [94,7%], [0,610], [0,573],
+      [1,0], [5], [2], [3 (2,0%)], [98,0%], [0,594], [0,568],
+      [1,0], [10], [2], [4 (2,7%)], [97,3%], [0,598], [0,571],
+      [1,0], [15], [2], [6 (4,0%)], [96,0%], [0,602], [0,568],
       table.hline(),
     ),
     caption: [Configurações representativas. Silhueta e ARI calculados sem as observações de ruído.],
     kind: table,
   ) <tab:dbscan>
 
+  A configuração `eps` = 0,5 e `minpts` = 10 alcança silhueta 0,710 e ARI 1,0, mas descarta 89 observações: a cobertura é de apenas 40,7% e as métricas são calculadas sobre 61 das 150 observações. Por isso, esse extremo não representa uma melhoria equivalente da segmentação da base completa e não deve ser escolhido pela silhueta sem considerar a cobertura. Já em `eps` = 1,0, as configurações com `minpts` = 5, 10 e 15 preservam entre 144 e 147 observações, mas fundem a fronteira entre _versicolor_ e _virginica_ e produzem ARI próximo a 0,568.
+
   #figure(
     image("../imagens/dbscan_clusters.png", width: 100%),
     caption: [DBSCAN com `eps` = 0,7 e `minpts` = 5, projetado em `sepal_length` e `sepal_width`. O rótulo −1 indica ruído.],
   ) <fig:dbscan-clusters>
 
-  Com `eps` = 0,4 e `minpts` = 3, o DBSCAN forma dez agrupamentos e descarta 39 observações (26,0%), obtendo silhueta 0,418 e ARI 0,621. A @tab:dbscan-cont apresenta a contingência dessa configuração normalizada com as espécies reais. A @fig:dbscan-petalas mostra essa fragmentação no plano das pétalas.
+  Com `eps` = 0,4 e `minpts` = 3, o DBSCAN forma dez agrupamentos e descarta 39 observações (26,0%), obtendo silhueta 0,418 e ARI 0,621. A @tab:dbscan-cont apresenta as contagens dessa contingência entre as espécies reais e os grupos encontrados. A @fig:dbscan-petalas mostra essa fragmentação no plano das pétalas.
 
   #figure(
     table(
