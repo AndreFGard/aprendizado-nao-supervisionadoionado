@@ -454,12 +454,14 @@ def export_hierarchical_results(
 
     _save_table(results, tables_dir, "hierarchical_metrics.csv")
 
-    model = hierarchical.HierarchicalCentroid.create(n_clusters=3)
+    best_row = _select_best_row(results, metric="silhouette")
+    k_star = int(best_row["k"])
+    model = hierarchical.HierarchicalCentroid.create(n_clusters=k_star)
     model.fit(x)
 
-    k3_labels = model.get_clusters(k=3)
+    k_star_labels = model.get_clusters(k=k_star)
     cluster_species = (
-        pd.DataFrame({"cluster": k3_labels, "species": y.to_numpy()})
+        pd.DataFrame({"cluster": k_star_labels, "species": y.to_numpy()})
         .groupby("cluster")["species"]
         .agg(lambda values: values.mode().iloc[0])
     )
@@ -468,25 +470,26 @@ def export_hierarchical_results(
         "Iris-versicolor": "Versicolor",
         "Iris-virginica": "Virginica",
     }
-    k3_cluster_names = {
+    k_star_cluster_names = {
         int(cluster): species_names[str(species)]
         for cluster, species in cluster_species.items()
     }
-    k3_clusters_fig = plot_cluster_assignments(
+    k_star_clusters_fig = plot_cluster_assignments(
         x,
-        k3_labels,
-        "Centroid Linkage (k = 3): agrupamento no plano das pétalas",
+        k_star_labels,
+        f"Centroid Linkage (k = {k_star}): agrupamento no plano das pétalas",
         x_column="petal_length",
         y_column="petal_width",
-        cluster_names=k3_cluster_names,
+        cluster_names=k_star_cluster_names,
     )
     _save_figure(
-        k3_clusters_fig,
-        figures_dir / "hierarchical_k3_petal_clusters.png",
+        k_star_clusters_fig,
+        figures_dir / "hierarchical_kstar_petal_clusters.png",
     )
 
     cut_height = (
-        model.linkage_matrix_[len(x) - 3 - 1, 2] + model.linkage_matrix_[len(x) - 3, 2]
+        model.linkage_matrix_[len(x) - k_star - 1, 2]
+        + model.linkage_matrix_[len(x) - k_star, 2]
     ) / 2
     dendrogram_fig = plot_hierarchical_dendrogram(
         model.linkage_matrix_,
@@ -1130,7 +1133,26 @@ def comparar_algoritmos_por_silhueta(
     """Compara cada algoritmo pela configuração de maior silhueta."""
     comparacao = []
     for nome, resultados_modelo in resultados.items():
-        melhor = _select_best_row(resultados_modelo, metric="silhouette")
+        if nome == "DBSCAN":
+            eligible = resultados_modelo[
+                resultados_modelo["n_ruido"].le(10)
+                & resultados_modelo["silhouette"].notna()
+            ]
+            if eligible.empty:
+                melhor = _select_best_row(
+                    resultados_modelo,
+                    metric="silhouette",
+                )
+            else:
+                melhor = eligible.sort_values(
+                    ["silhouette", "eps", "minpts"],
+                    ascending=[False, True, True],
+                ).iloc[0]
+        else:
+            melhor = _select_best_row(
+                resultados_modelo,
+                metric="silhouette",
+            )
         comparacao.append(
             {
                 "algorithm": nome,

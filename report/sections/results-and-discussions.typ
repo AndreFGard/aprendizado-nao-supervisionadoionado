@@ -128,23 +128,23 @@
       table.hline(),
       table.header([*$k$*], [*Sil. média*], [*Sil. mín.*], [*ARI média*], [*ARI máx.*]),
       table.hline(),
-      [2], [0,532], [0,290], [0,532], [0,568],
-      [3], [0,429], [0,295], [0,575], [0,652],
-      [4], [0,327], [0,136], [0,552], [0,612],
-      [5], [0,313], [0,113], [0,497], [0,617],
+      [2], [0,580], [0,580], [0,568], [0,568],
+      [3], [0,456], [0,456], [0,652], [0,652],
+      [4], [0,258], [0,258], [0,612], [0,612],
+      [5], [0,286], [0,286], [0,487], [0,487],
       table.hline(),
     ),
     caption: [Kernel Fuzzy K-Means: considerando todas as combinações de $m$, $sigma^2$ e sementes.],
     kind: table,
   ) <tab:kfkm>
 
-  A silhueta média decresce de 0,532 em $k = 2$ para 0,313 em $k = 5$, repetindo a tendência já observada, e o ARI médio é máximo em $k = 3$ (0,575), assim como o ARI máximo observado (0,652). Esses resultados evidenciam a divergência entre os critérios interno e externo.
+  Para cada valor de $k$, foi selecionada pela menor função objetivo uma única partição entre as dez inicializações e combinações de parâmetros. A silhueta dessas partições decresce após $k = 2$: 0,580 em $k = 2$, 0,456 em $k = 3$, 0,258 em $k = 4$ e 0,286 em $k = 5$. Assim, $k^* = 2$ pela silhueta. O ARI da partição final é 0,568.
 
-  Pela maior silhueta, a configuração selecionada foi $k = 2$, $m = 1,5$ e $sigma^2 = "automático"$, com silhueta de 0,5802 e ARI de 0,5681. Essa solução separa a _setosa_ das demais espécies. Na @fig:kfkm-pert, a _setosa_ apresenta pertinência elevada a um agrupamento, enquanto as espécies _versicolor_ e _virginica_ mostram pertinências intermediárias na região de fronteira. A atribuição pelo maior grau de pertinência produz a partição exibida na @fig:kfkm-clusters.
+  Pela maior silhueta entre as partições selecionadas por objetivo, a configuração final foi $k = 2$, $m = 2,5$ e $sigma^2 = 2,0$, com silhueta de 0,5802 e ARI de 0,5681. Essa solução separa a _setosa_ das demais espécies. Na @fig:kfkm-pert, a _setosa_ apresenta pertinência elevada a um agrupamento, enquanto as espécies _versicolor_ e _virginica_ mostram pertinências intermediárias na região de fronteira. A atribuição pelo maior grau de pertinência produz a partição exibida na @fig:kfkm-clusters.
 
   #figure(
     image("../imagens/kernel_fuzzy_kmeans_memberships.png", width: 100%),
-    caption: [Graus de pertinência da melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2$ automático).],
+    caption: [Graus de pertinência da melhor configuração por silhueta ($k = 2$, $m = 2,5$, $sigma^2 = 2,0$).],
   ) <fig:kfkm-pert>
 
   #figure(
@@ -159,9 +159,9 @@
     caption: [Convergência da função objetivo da melhor configuração por silhueta.],
   ) <fig:kfkm-conv>
 
-  Para $k = 3$, o ARI máximo foi 0,652, obtido com $m = 2,5$ e $sigma^2 = 2,0$. A maior silhueta foi 0,580, com $k = 2$, $m = 1,5$ e $sigma^2$ automático, associada a ARI de 0,568. Portanto, o ARI aponta $k = 3$ como a configuração mais coerente com as espécies, enquanto a silhueta favorece $k = 2$. Valores extremos dos parâmetros produziram instabilidade: 9 das 480 execuções atingiram o limite de 100 iterações.
+  Os ARI das outras partições por $k$ são apresentados somente como avaliação externa: 0,652 em $k = 3$, 0,612 em $k = 4$ e 0,487 em $k = 5$. Essas métricas não participam da escolha de $k^*$ nem da escolha da execução. Valores extremos dos parâmetros produziram instabilidade em algumas execuções.
 
-  Na melhor configuração por ARI ($k = 3$, $m = 2,0$, $sigma^2 = 0,5$, semente 2), a atribuição pelo maior grau de pertinência reproduz a separação da _setosa_ e concentra as confusões entre _versicolor_ e _virginica_ (@tab:kfkm-k3-contingencia).
+  Na partição final em $k^* = 2$, a atribuição pelo maior grau de pertinência reproduz a separação da _setosa_ e concentra as confusões entre _versicolor_ e _virginica_ (@tab:kfkm-k3-contingencia).
 
   #figure(
     table(
@@ -294,9 +294,9 @@
   
   == DBSCAN
 
-  Foram avaliadas 40 configurações (oito valores de `eps` e cinco de `minpts`). Em 35 delas foram identificados pelo menos dois agrupamentos. Nas cinco restantes, não há silhueta válida nem ARI interpretável: três configurações classificaram todas as observações como ruído e duas formaram um único agrupamento. Nessas configurações, o ARI foi registrado como `NaN`, em vez de 1,0.
+  Foram avaliadas 40 configurações (oito valores de `eps` e cinco de `minpts`). Em 32 delas foram identificados pelo menos dois agrupamentos. Nas oito restantes, não há silhueta válida nem ARI interpretável: sete configurações classificaram todas as observações como ruído e uma formou um único agrupamento. Nessas configurações, o ARI foi registrado como `NaN`, em vez de 1,0.
 
-  A @fig:dbscan-ruido mostra que o ruído diminui com o aumento de `eps` e aumenta com `minpts`. Com `eps` = 0,2, entre 115 e 150 observações são ruído; com `eps` = 1,0, a quantidade cai para entre zero e duas observações, conforme `minpts`. A @fig:dbscan-cobertura resume essa mesma relação pela porcentagem da base não descartada.
+  A @fig:dbscan-ruido mostra que o ruído diminui com o aumento de `eps` e aumenta com `minpts`. Com `eps` = 0,2, entre 132 e 150 observações são ruído; com `eps` = 1,0, a quantidade varia entre uma e seis observações, conforme `minpts`. A @fig:dbscan-cobertura resume essa mesma relação pela porcentagem da base não descartada.
 
   #figure(
     image("../imagens/dbscan_noise.png", width: 100%),
@@ -315,7 +315,7 @@
     caption: [DBSCAN: silhueta em função de `eps`, para cada valor de `minpts`. Configurações com menos de dois agrupamentos não aparecem.],
   ) <fig:dbscan-sil>
 
-  A @tab:dbscan reúne configurações representativas. Nas duas configurações de alto ARI e elevado ruído (`eps` = 0,3 / `minpts` = 7 e `eps` = 0,5 / `minpts` = 15), o valor 1,0 reflete apenas a concordância entre espécies dentro dos poucos pontos não descartados. Em uma análise auxiliar que trata o ruído como um grupo adicional, esses ARI seriam cerca de 0,25 e 0,50, respectivamente.
+  A @tab:dbscan reúne configurações representativas. Como a silhueta e o ARI excluem as observações de ruído, os valores obtidos em configurações com baixo número de pontos válidos devem ser interpretados junto com a cobertura.
 
   #figure(
     table(
@@ -341,19 +341,19 @@
     caption: [DBSCAN com `eps` = 0,7 e `minpts` = 5, projetado em `sepal_length` e `sepal_width`. O rótulo −1 indica ruído.],
   ) <fig:dbscan-clusters>
 
-  Com `eps` = 0,4 e `minpts` = 3, o DBSCAN forma quatro agrupamentos, descarta 22 observações (14,7%) e alcança o maior ARI entre configurações com até 15% de ruído: 0,890, com silhueta 0,474. Conforme a @tab:dbscan-cont, três grupos correspondem majoritariamente às espécies, enquanto um quarto agrupa poucos pontos de _versicolor_. A @fig:dbscan-petalas mostra essa fragmentação no plano das pétalas.
+  Com `eps` = 0,4 e `minpts` = 3, o DBSCAN forma dez agrupamentos e descarta 39 observações (26,0%), obtendo silhueta 0,418 e ARI 0,621. A @tab:dbscan-cont apresenta a contingência dessa configuração normalizada com as espécies reais. A @fig:dbscan-petalas mostra essa fragmentação no plano das pétalas.
 
   #figure(
     table(
-      columns: 6,
+      columns: 12,
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*Espécie*], [*Ruído*], [*G0*], [*G1*], [*G2*], [*G3*]),
+      table.header([*Espécie*], [*Ruído*], [*G0*], [*G1*], [*G2*], [*G3*], [*G4*], [*G5*], [*G6*], [*G7*], [*G8*], [*G9*]),
       table.hline(),
-      [_Setosa_], [3], [47], [0], [0], [0],
-      [_Versicolor_], [4], [0], [39], [4], [3],
-      [_Virginica_], [15], [0], [0], [0], [35],
+      [_Setosa_], [9], [41], [0], [0], [0], [0], [0], [0], [0], [0], [0],
+      [_Versicolor_], [9], [0], [17], [19], [3], [2], [0], [0], [0], [0], [0],
+      [_Virginica_], [21], [0], [5], [0], [0], [1], [3], [5], [9], [3], [3],
       table.hline(),
     ),
     caption: [`eps` = 0,4 e `minpts` = 3: contingência entre espécies e grupos.],
