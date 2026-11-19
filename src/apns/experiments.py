@@ -908,6 +908,7 @@ def evaluate_umap_model(
     n_neighbors: int = 15,
     min_dist: float = 0.1,
     random_state: int = 42,
+    trustworthiness_n_neighbors: int = 10,
 ) -> pd.DataFrame:
     _model, embedding = _fit_umap(
         x=x,
@@ -923,6 +924,11 @@ def evaluate_umap_model(
                 "min_dist": min_dist,
                 "random_state": random_state,
                 "silhouette": metrics.calcular_silhueta(embedding, y),
+                "trustworthiness": metrics.calcular_trustworthiness(
+                    x,
+                    embedding,
+                    n_neighbors=trustworthiness_n_neighbors,
+                ),
             }
         ]
     )
@@ -949,9 +955,13 @@ def export_umap_results(
     min_dist_values: list[float] | None = None,
     random_state: int = 42,
     results_dir: Path | None = None,
+    seed_values: list[int] | None = None,
+    trustworthiness_n_neighbors: int = 10,
+    n_best_configurations: int = 4,
 ) -> pd.DataFrame:
     n_neighbors_values = [15] if n_neighbors_values is None else n_neighbors_values
     min_dist_values = [0.1] if min_dist_values is None else min_dist_values
+    seed_values = list(range(10)) if seed_values is None else seed_values
     tables_dir, figures_dir = _prepare_results_directories(results_dir)
     result_rows = []
     embeddings = {}
@@ -973,11 +983,73 @@ def export_umap_results(
                     "min_dist": min_dist,
                     "random_state": random_state,
                     "silhouette": metrics.calcular_silhueta(embedding, y),
+                    "trustworthiness": metrics.calcular_trustworthiness(
+                        x,
+                        embedding,
+                        n_neighbors=trustworthiness_n_neighbors,
+                    ),
                 }
             )
 
     results = pd.DataFrame(result_rows)
     _save_table(results, tables_dir, "umap_metrics.csv")
+
+    top_configurations = (
+        results.sort_values("silhouette", ascending=False)
+        .head(n_best_configurations)
+        [["n_neighbors", "min_dist"]]
+        .itertuples(index=False, name=None)
+    )
+
+    seed_rows = []
+    seed_summary_rows = []
+    for n_neighbors, min_dist in top_configurations:
+        for seed in seed_values:
+            _model, embedding = _fit_umap(
+                x=x,
+                n_neighbors=int(n_neighbors),
+                min_dist=float(min_dist),
+                random_state=seed,
+            )
+            seed_rows.append(
+                {
+                    "model_name": umap.UMAP.__name__,
+                    "n_neighbors": int(n_neighbors),
+                    "min_dist": float(min_dist),
+                    "random_state": seed,
+                    "silhouette": metrics.calcular_silhueta(embedding, y),
+                    "trustworthiness": metrics.calcular_trustworthiness(
+                        x,
+                        embedding,
+                        n_neighbors=trustworthiness_n_neighbors,
+                    ),
+                }
+            )
+
+    seed_results = pd.DataFrame(seed_rows)
+    _save_table(seed_results, tables_dir, "umap_seed_results.csv")
+
+    for (n_neighbors, min_dist), group in seed_results.groupby(
+        ["n_neighbors", "min_dist"]
+    ):
+        seed_summary_rows.append(
+            {
+                "n_neighbors": int(n_neighbors),
+                "min_dist": float(min_dist),
+                "n_seeds": len(group),
+                "n_neighbors_trustworthiness": trustworthiness_n_neighbors,
+                "silhouette_mean": group["silhouette"].mean(),
+                "silhouette_std": group["silhouette"].std(),
+                "trustworthiness_mean": group["trustworthiness"].mean(),
+                "trustworthiness_std": group["trustworthiness"].std(),
+            }
+        )
+
+    seed_summary = pd.DataFrame(seed_summary_rows).sort_values(
+        ["silhouette_mean", "trustworthiness_mean"],
+        ascending=False,
+    )
+    _save_table(seed_summary, tables_dir, "umap_seed_summary.csv")
 
     embeddings_figure = plot_umap_embeddings_comparison(embeddings, y)
     _save_figure(
