@@ -182,6 +182,8 @@
 
   Em síntese, a busca atual adapta o procedimento do Fuzzy K-Means: dentro de cada tripla $(k, m, sigma^2)$, a função objetivo escolhe a melhor dentre as dez sementes; em seguida, a silhueta compara as combinações de parâmetros e seleciona o modelo final. Essa abordagem evita que diferenças de escala em $J_m$ decorrentes de $m$ ou $sigma^2$ favoreçam diretamente uma configuração.
 
+  Para fins de comparação entre métodos de agrupamento, a tabela conjunta considera apenas as configurações selecionadas por silhueta. Ela não é um ranking absoluto: a silhueta do K-Medoids usa distância city-block, enquanto os demais modelos usaram distância euclidiana; no DBSCAN, a métrica é calculada após excluir as observações de ruído e deve ser interpretada junto da cobertura. t-SNE e UMAP não integram essa comparação por serem técnicas de redução de dimensionalidade, não algoritmos de agrupamento.
+
   == Misturas gaussianas com EM
 
   Foi feita a busca de parâmetros com $k in {2, 3, 4, 5}$ e $"covariance_type" in {"spherical", "diag", "tied", "full"}$, dez inicializações cada. Em cada execução, a partição _crisp_ usada nas métricas foi obtida atribuindo cada observação ao componente de maior probabilidade a posteriori. Para cada par $(k, "covariance_type")$, foi mantida a semente de menor log-verossimilhança negativa; entre os quatro tipos, foi mantido o de menor BIC. A @tab:em resume as quatro configurações selecionadas.

@@ -1349,9 +1349,11 @@ def export_umap_results(
 def comparar_algoritmos_por_silhueta(
     resultados: dict[str, pd.DataFrame],
 ) -> pd.DataFrame:
-    """Compara cada algoritmo pela configuração de maior silhueta."""
+    embedding_names = {"t-SNE", "TSNE", "UMAP"}
     comparacao = []
     for nome, resultados_modelo in resultados.items():
+        if nome in embedding_names:
+            continue
         if nome == "DBSCAN":
             eligible = resultados_modelo[
                 resultados_modelo["n_ruido"].le(10)
@@ -1378,6 +1380,8 @@ def comparar_algoritmos_por_silhueta(
                 "n_clusters": melhor.get("k", melhor.get("n_clusters")),
                 "silhouette": melhor["silhouette"],
                 "ari": melhor["ari"],
+                "noise": melhor.get("n_ruido"),
+                "coverage": melhor.get("cobertura"),
                 "metric": melhor.get("metric"),
                 "linkage": melhor.get("linkage"),
                 "m": melhor.get("m"),
@@ -1387,14 +1391,7 @@ def comparar_algoritmos_por_silhueta(
             }
         )
 
-    return (
-        pd.DataFrame(comparacao)
-        .sort_values(
-            "silhouette",
-            ascending=False,
-        )
-        .reset_index(drop=True)
-    )
+    return pd.DataFrame(comparacao)
 
 
 def export_comparacao_algoritmos(
