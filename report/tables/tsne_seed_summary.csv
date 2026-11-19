@@ -1,0 +1,2 @@
+perplexity,n_seeds,n_neighbors_trustworthiness,silhouette_mean,silhouette_std,kl_divergence_mean,kl_divergence_std,trustworthiness_mean,trustworthiness_std
+30.0,10,10,0.6315816044807434,0.0,0.11854856386780739,7.40907286116297e-09,0.9895662949194547,1.1702778228589004e-16

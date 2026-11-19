@@ -266,6 +266,104 @@
 
   == t-SNE
 
+  Foram avaliadas as perplexidades 5, 10, 20 e 30, com inicialização por PCA, taxa de aprendizado automática, limite de 1000 iterações e semente 42. Todas as execuções registraram 999 iterações. A @tab:tsne resume a silhueta, calculada no espaço bidimensional com as espécies reais como rótulos, a divergência de Kullback-Leibler (KL) e a trustworthiness com dez vizinhos.
+
+  #figure(
+    table(
+      columns: 5,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*Perplexidade*], [*Silhouette*], [*Divergência KL*], [*Iterações*], [*Trustworthiness*]),
+      table.hline(),
+      [5], [0,558], [0,338], [999], [0,982],
+      [10], [0,610], [0,280], [999], [0,987],
+      [20], [0,629], [0,179], [999], [0,990],
+      [30], [0,632], [0,119], [999], [0,990],
+      table.hline(),
+    ),
+    caption: [t-SNE com as espécies reais.],
+    kind: table,
+  ) <tab:tsne>
+
+  A silhueta cresce com a perplexidade (@fig:tsne-comp), com ganhos decrescentes: 0,052 de 5 para 10, 0,019 de 10 para 20 e 0,003 de 20 para 30. A divergência KL diminui continuamente de 0,338 para 0,119, mas seus valores não são estritamente comparáveis entre perplexidades. Portanto, ela foi usada apenas como informação complementar, e a configuração foi selecionada pela silhueta.
+
+  Na análise de estabilidade da perplexidade 30, as sementes de 0 a 9 produziram silhueta média de 0,632 e trustworthiness média de 0,990, ambas sem desvio padrão amostral relevante. Esses resultados indicam estabilidade das métricas nesse conjunto de execuções, mas não avaliam a robustez em novas amostras ou configurações.
+
+  #figure(
+    image("../imagens/tsne_perplexity_comparison.png", width: 100%),
+    caption: [t-SNE: silhueta e divergência KL em função da perplexidade.],
+  ) <fig:tsne-comp>
+
+  Os embeddings da @fig:tsne-emb mostram o efeito da perplexidade sobre a estrutura obtida. Com perplexidade 5, a ênfase na vizinhança muito local fragmenta os dados: a _setosa_ aparece dividida em três subgrupos, e _versicolor_ também se divide em vários blocos, o que produz subestruturas que não correspondem a diferenças entre espécies. Com perplexidade 10, a _setosa_ forma um único grupo alongado, enquanto _versicolor_ e _virginica_ ocupam regiões distintas, mas com alguns pontos de _versicolor_ dentro da região de _virginica_. Com perplexidades 20 e 30, a _setosa_ forma um grupo compacto e bem afastado, e _versicolor_ e _virginica_ formam uma região contínua, com sobreposição parcial na fronteira entre elas.
+
+  #figure(
+    image("../imagens/tsne_embeddings_perplexities.png", width: 100%),
+    caption: [t-SNE: embeddings bidimensionais para as perplexidades 5, 10, 20 e 30, coloridos pela espécie real.],
+  ) <fig:tsne-emb>
+
+  A configuração selecionada foi a de perplexidade 30, com silhueta de 0,632 e divergência KL de 0,119. Nela, a _setosa_ está completamente isolada das demais espécies, enquanto _versicolor_ e _virginica_ formam uma faixa contínua com sobreposição parcial na fronteira. Esse resultado é consistente com os métodos de agrupamento, nos quais a _setosa_ é separada de forma consistente e a principal dificuldade ocorre entre as outras duas espécies.
+
+  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta mede a separação das espécies reais no plano e não a qualidade de um agrupamento, por isso não é comparável às silhuetas dos métodos de agrupamento. Já a trustworthiness, mede a preservação dos dez vizinhos mais próximos sendo uma métrica complementar. A comparação principal foi feita com a semente 42 e atributos sem normalização.
+  
   == UMAP
+
+  Foram avaliadas 12 configurações, combinando `n_neighbors` ∈ {5, 10, 15, 30} e `min_dist` ∈ {0,0; 0,1; 0,5}, com distância euclidiana, dois componentes e semente 42. A silhueta foi calculada no espaço bidimensional, com as espécies reais como rótulos. A @tab:umap apresenta os resultados.
+
+  #figure(
+    table(
+      columns: 4,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*`n_neighbors`*], [*`min_dist` = 0,0*], [*`min_dist` = 0,1*], [*`min_dist` = 0,5*]),
+      table.hline(),
+      [5], [0,606], [0,611], [0,614],
+      [10], [*0,675*], [0,651], [0,579],
+      [15], [0,623], [0,662], [0,610],
+      [30], [0,668], [0,656], [0,631],
+      table.hline(),
+    ),
+    caption: [Silhueta por configuração. Em destaque, o maior valor.],
+    kind: table,
+  ) <tab:umap>
+
+  A silhueta variou entre 0,579 (`n_neighbors` = 10 e `min_dist` = 0,5) e 0,675 (`n_neighbors` = 10 e `min_dist` = 0,0), conforme a @fig:umap-sil. Com `min_dist` = 0,5, as silhuetas ficaram entre 0,579 e 0,631 para `n_neighbors` ≥ 10, enquanto as configurações com `n_neighbors` = 5 ficaram próximas (0,606--0,614). A trustworthiness com dez vizinhos permaneceu elevada em todas as configurações (0,976--0,982).
+
+  A @tab:umap-sementes resume a estabilidade das quatro melhores configurações pela silhueta obtida com a semente 42, avaliadas em dez sementes.
+
+  #figure(
+    table(
+      columns: 5,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*`n_neighbors`*], [*`min_dist`*], [*Silhueta média*], [*DP silhueta*], [*Trustworthiness média (DP)*]),
+      table.hline(),
+      [10], [0,0], [0,658], [0,016], [0,978 (0,002)],
+      [30], [0,0], [0,664], [0,012], [0,979 (0,001)],
+      [15], [0,1], [0,643], [0,016], [0,979 (0,001)],
+      [30], [0,1], [0,645], [0,011], [0,980 (0,001)],
+      table.hline(),
+    ),
+    caption: [Estabilidade das quatro melhores configurações em dez sementes (0 a 9). Os desvios são padrões amostrais.],
+    kind: table,
+  ) <tab:umap-sementes>
+
+  Entre essas configurações, `n_neighbors` = 30 e `min_dist` = 0,0 obteve a maior silhueta média (0,664 ± 0,012), seguida por `n_neighbors` = 10 e `min_dist` = 0,0 (0,658 ± 0,016). A diferença é pequena, assim como o desvio padrão das quatro configurações (0,011--0,016), com trustworthiness média entre 0,978 e 0,980. Os resultados indicam estabilidade satisfatória, sem uma vantagem expressiva de uma única configuração.
+
+  #figure(
+    image("../imagens/umap_parameter_comparison.png", width: 100%),
+    caption: [UMAP: silhueta em função de `n_neighbors`, para cada valor de `min_dist`.],
+  ) <fig:umap-sil>
+
+  Os embeddings da @fig:umap-emb mostram o efeito dos parâmetros. Com `n_neighbors` = 5, a ênfase em vizinhanças locais fragmenta os dados, enquanto `min_dist` = 0,5 dispersa os pontos em estruturas mais contínuas. Com `n_neighbors` = 10 e `min_dist` = 0,0, os grupos são compactos e _versicolor_ e _virginica_ aparecem mais distintos. Em `n_neighbors` = 30, as duas espécies formam uma faixa contínua com sobreposição parcial para todos os valores de `min_dist`. A _setosa_ permanece completamente separada em todas as configurações.
+
+  #figure(
+    image("../imagens/umap_embeddings_parameters.png", width: 100%),
+    caption: [UMAP: embeddings bidimensionais para as 12 combinações de `n_neighbors` e `min_dist`, coloridos pela espécie real.],
+  ) <fig:umap-emb>
+
+  A configuração selecionada foi `n_neighbors` = 10 e `min_dist` = 0,0, a de maior silhueta na semente 42 (0,675). Nela, a _setosa_ está isolada e _versicolor_ e _virginica_ ocupam regiões vizinhas, com poucos pontos misturados. A separação entre essas duas espécies não é completa. A silhueta supera a maior obtida pelo t-SNE (0,632, @tab:tsne); ambas foram calculadas no espaço bidimensional com as espécies reais.
 
 ]
