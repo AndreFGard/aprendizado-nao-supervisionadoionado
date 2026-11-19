@@ -1,2 +1,2 @@
-perplexity,n_seeds,n_neighbors_trustworthiness,silhouette_mean,silhouette_std,kl_divergence_mean,kl_divergence_std,trustworthiness_mean,trustworthiness_std
-30.0,10,10,0.48259878158569336,0.0,0.16419715732336043,7.197944693858145e-09,0.9888128872366793,2.340555645717801e-16
+perplexity,n_seeds,n_neighbors_trustworthiness,silhouette_mean,silhouette_std,external_silhouette_mean,external_silhouette_std,kl_divergence_mean,kl_divergence_std,trustworthiness_mean,trustworthiness_std
+30.0,10,10,0.8653171062469482,0.0,0.48259878158569336,0.0,0.16419715583324432,7.694926552389893e-09,0.9888128872366793,2.340555645717801e-16

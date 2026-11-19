@@ -467,29 +467,29 @@
 
   == t-SNE
 
-  Foram avaliadas as perplexidades 5, 10, 20 e 30, com inicialização por PCA, taxa de aprendizado automática, limite de 1000 iterações e semente 42. Todas as execuções registraram 999 iterações. A @tab:tsne resume a silhueta, calculada no espaço bidimensional com as espécies reais como rótulos, a divergência de Kullback-Leibler (KL) e a trustworthiness com dez vizinhos.
+  Foram avaliadas as perplexidades 5, 10, 20 e 30, com inicialização por PCA, taxa de aprendizado automática, limite de 1000 iterações e semente 42. Todas as execuções registraram 999 iterações. A @tab:tsne resume a silhueta não supervisionada, obtida por K-Means no embedding, a silhueta externa pelas espécies reais, a divergência de Kullback-Leibler (KL) e a trustworthiness com dez vizinhos.
 
   #figure(
     table(
-      columns: 5,
+      columns: 7,
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*Perplexidade*], [*Silhouette*], [*Divergência KL*], [*Iterações*], [*Trustworthiness*]),
+      table.header([*Perplexidade*], [*Sil. não sup.*], [*$k$ K-Means*], [*Sil. externa*], [*Divergência KL*], [*Iterações*], [*Trustworthiness*]),
       table.hline(),
-      [5], [0,267], [0,330], [999], [0,981],
-      [10], [0,455], [0,309], [999], [0,985],
-      [20], [0,508], [0,195], [999], [0,990],
-      [30], [0,483], [0,164], [999], [0,989],
+      [5], [0,588], [5], [0,267], [0,330], [999], [0,981],
+      [10], [0,664], [2], [0,455], [0,309], [999], [0,985],
+      [20], [0,819], [2], [0,508], [0,195], [999], [0,990],
+      [30], [*0,865*], [2], [0,483], [0,164], [999], [0,989],
       table.hline(),
     ),
-    caption: [t-SNE com as espécies reais.],
+    caption: [t-SNE: silhueta não supervisionada por K-Means e avaliação externa pelas espécies reais.],
     kind: table,
   ) <tab:tsne>
 
-  A silhueta cresce com a perplexidade (@fig:tsne-comp), com ganhos decrescentes: 0,052 de 5 para 10, 0,019 de 10 para 20 e 0,003 de 20 para 30. A divergência KL diminui continuamente de 0,338 para 0,119, mas seus valores não são estritamente comparáveis entre perplexidades. Portanto, ela foi usada apenas como informação complementar, e a configuração foi selecionada pela silhueta.
+  A silhueta não supervisionada cresce com a perplexidade, selecionando perplexidade 30 (0,865). A silhueta externa pelas espécies reais é apresentada apenas como referência e não participa da seleção. A divergência KL foi usada como informação complementar.
 
-  Na análise de estabilidade da perplexidade 30, as sementes de 0 a 9 produziram silhueta média de 0,483 e trustworthiness média de 0,989, sem variação observável entre as sementes. Esses resultados indicam estabilidade das métricas nesse conjunto de execuções, mas não avaliam a robustez em novas amostras ou configurações.
+  Na análise de estabilidade da perplexidade 30, as sementes de 0 a 9 produziram silhueta não supervisionada média de 0,865 e trustworthiness média de 0,989, ambas sem variação observável. A silhueta externa média foi 0,483. Esses resultados indicam estabilidade das métricas nesse conjunto de execuções, mas não avaliam a robustez em novas amostras ou configurações.
 
   #figure(
     image("../imagens/tsne_perplexity_comparison.png", width: 100%),
@@ -507,7 +507,7 @@
   
   == UMAP
 
-  Foram avaliadas 12 configurações, combinando `n_neighbors` ∈ {5, 10, 15, 30} e `min_dist` ∈ {0,0; 0,1; 0,5}, com distância euclidiana, dois componentes e semente 42. A silhueta foi calculada no espaço bidimensional, com as espécies reais como rótulos. A @tab:umap apresenta os resultados.
+  Foram avaliadas 12 configurações, combinando `n_neighbors` ∈ {5, 10, 15, 30} e `min_dist` ∈ {0,0; 0,1; 0,5}, com distância euclidiana, dois componentes e semente 42. A silhueta não supervisionada foi calculada no espaço bidimensional com rótulos preditos por K-Means; a silhueta pelas espécies reais foi mantida apenas como avaliação externa. A @tab:umap apresenta os resultados.
 
   #figure(
     table(
@@ -517,19 +517,19 @@
       table.hline(),
       table.header([*`n_neighbors`*], [*`min_dist` = 0,0*], [*`min_dist` = 0,1*], [*`min_dist` = 0,5*]),
       table.hline(),
-      [5], [0,304], [0,308], [0,291],
-      [10], [0,533], [0,513], [0,489],
-      [15], [0,530], [0,520], [0,509],
-      [30], [*0,541*], [0,537], [0,479],
+      [5], [0,760], [0,712], [0,597],
+      [10], [0,820], [0,783], [0,720],
+      [15], [0,864], [0,800], [0,863],
+      [30], [*0,902*], [0,893], [0,686],
       table.hline(),
     ),
-    caption: [Silhueta por configuração. Em destaque, o maior valor.],
+    caption: [Silhueta não supervisionada por configuração. Em destaque, o maior valor.],
     kind: table,
   ) <tab:umap>
 
-  A silhueta variou entre 0,291 (`n_neighbors` = 5 e `min_dist` = 0,5) e 0,541 (`n_neighbors` = 30 e `min_dist` = 0,0), conforme a @fig:umap-sil. As configurações com `n_neighbors` ≥ 10 produziram separações maiores que as configurações com 5 vizinhos. A trustworthiness com dez vizinhos variou entre 0,971 e 0,980.
+  A silhueta não supervisionada variou entre 0,597 (`n_neighbors` = 5 e `min_dist` = 0,5) e 0,902 (`n_neighbors` = 30 e `min_dist` = 0,0), conforme a @fig:umap-sil. A trustworthiness com dez vizinhos variou entre 0,971 e 0,980.
 
-  A @tab:umap-sementes resume a estabilidade das quatro melhores configurações pela silhueta obtida com a semente 42, avaliadas em dez sementes.
+  A @tab:umap-sementes resume a estabilidade das quatro melhores configurações pela silhueta não supervisionada obtida com a semente 42, avaliadas em dez sementes.
 
   #figure(
     table(
@@ -541,17 +541,17 @@
         [*`n_neighbors`*], [*`min_dist`*], [*Silhueta média*], [*DP silhueta*], [*Trustworthiness média (DP)*]
       ),
       table.hline(),
-      [15], [0,0], [0,544], [0,017], [0,975 (0,002)],
-      [10], [0,0], [0,541], [0,027], [0,975 (0,002)],
-      [30], [0,0], [0,539], [0,012], [0,977 (0,002)],
-      [30], [0,1], [0,533], [0,007], [0,977 (0,002)],
+      [30], [0,0], [0,893], [0,025], [0,977 (0,002)],
+      [30], [0,1], [0,876], [0,023], [0,977 (0,002)],
+      [15], [0,0], [0,854], [0,023], [0,975 (0,002)],
+      [15], [0,5], [0,781], [0,051], [0,979 (0,001)],
       table.hline(),
     ),
     caption: [Estabilidade das quatro melhores configurações em dez sementes (0 a 9). Os desvios são padrões amostrais.],
     kind: table,
   ) <tab:umap-sementes>
 
-  Entre essas configurações, `n_neighbors` = 15 e `min_dist` = 0,0 obteve a maior silhueta média (0,544 ± 0,017), seguida por `n_neighbors` = 10 e `min_dist` = 0,0 (0,541 ± 0,027). A diferença é pequena, com trustworthiness média entre 0,975 e 0,977. Os resultados indicam estabilidade satisfatória, sem uma vantagem expressiva de uma única configuração.
+  Entre essas configurações, `n_neighbors` = 30 e `min_dist` = 0,0 obteve a maior silhueta não supervisionada média (0,893 ± 0,025). A trustworthiness média ficou entre 0,975 e 0,979. Os resultados indicam estabilidade satisfatória dessa configuração selecionada sem utilização dos rótulos reais.
 
   #figure(
     image("../imagens/umap_parameter_comparison.png", width: 100%),

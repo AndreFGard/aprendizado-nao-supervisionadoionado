@@ -3,6 +3,7 @@ from sklearn.metrics import (
     silhouette_score,
 )
 from sklearn.manifold import trustworthiness
+from sklearn.cluster import KMeans
 
 
 def calcular_silhueta(X, labels, metric="euclidean"):
@@ -31,3 +32,29 @@ def calcular_trustworthiness(X, embedding, n_neighbors=10):
     if len(X) <= n_neighbors:
         raise ValueError("n_neighbors deve ser menor que o numero de observacoes")
     return trustworthiness(X, embedding, n_neighbors=n_neighbors)
+
+
+def calcular_silhueta_clusterizada(
+    embedding,
+    k_values=(2, 3, 4, 5),
+    random_state=42,
+) -> tuple[float | None, int | None]:
+    """Escolhe a silhueta maxima entre particoes K-Means no embedding."""
+    melhor_silhueta = None
+    melhor_k = None
+
+    for k in k_values:
+        labels = KMeans(
+            n_clusters=k,
+            init="random",
+            n_init=10,
+            random_state=random_state,
+        ).fit_predict(embedding)
+        silhueta = calcular_silhueta(embedding, labels)
+        if silhueta is not None and (
+            melhor_silhueta is None or silhueta > melhor_silhueta
+        ):
+            melhor_silhueta = float(silhueta)
+            melhor_k = k
+
+    return melhor_silhueta, melhor_k
