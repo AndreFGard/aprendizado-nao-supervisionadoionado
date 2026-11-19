@@ -274,7 +274,7 @@
 
   #figure(
     image("../imagens/hierarchical_dendrogram.png", width: 100%),
-    caption: [Dendrograma truncado do agrupamento hierárquico (Centroid Linkage, distância euclidiana), com linha de corte para a partição em $k = 3$.],
+    caption: [Dendrograma truncado do agrupamento hierárquico (Centroid Linkage, distância euclidiana), com linha de corte para a partição em $k^* = 2$.],
   ) <fig:hier-dend>
 
   Para $k = 2$, a partição separa a _setosa_ (50 observações) das demais espécies (100 observações), a mesma partição obtida pela Mistura Gaussiana, com silhueta de 0,580 e ARI de 0,568. A silhueta elevada reflete a separação da _setosa_, e o ARI é moderado porque _versicolor_ e _virginica_ permanecem juntas.
@@ -282,9 +282,9 @@
   Para $k = 3$, a _setosa_ permanece isolada e as demais observações são divididas em grupos menores, com silhueta de 0,479 e ARI de 0,562. A separação entre _versicolor_ e _virginica_ permanece limitada.
 
   #figure(
-    image("../imagens/hierarchical_k3_petal_clusters.png", width: 82%),
-    caption: [Centroid Linkage com $k = 3$, projetado em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo.],
-  ) <fig:hier-k3-clusters>
+    image("../imagens/hierarchical_kstar_petal_clusters.png", width: 82%),
+    caption: [Centroid Linkage com $k^* = 2$, projetado em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo.],
+  ) <fig:hier-kstar-clusters>
 
   Como o Centroid Linkage não é monotônico, o `cut_tree` pode retornar menos rótulos que o $k$ solicitado. Por isso, as partições desta análise foram reconstruídas a partir das primeiras $n-k$ fusões, garantindo exatamente $k$ grupos.
 
