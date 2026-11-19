@@ -205,8 +205,9 @@ def main() -> None:
     print("\nVariância explicada por componente (PCA):")
     print(pca_variance)
 
-    export_kernel_pca_results()
+    kernel_pca_variance = export_kernel_pca_results()
     print("\nResultados e gráfico do Kernel PCA exportados.")
+    print(kernel_pca_variance)
 
     export_tsne_results(
         x=X,
