@@ -18,9 +18,8 @@ class KMeans(treinable_model.ITreinableModel):
         return cls(
             sklearn.cluster.KMeans(
                 n_clusters=n_clusters,
-                init="random",
-                random_state=random_state,
                 n_init=1,
+                random_state=random_state,
             )
         )
 

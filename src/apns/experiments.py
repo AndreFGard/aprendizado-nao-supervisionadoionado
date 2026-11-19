@@ -140,10 +140,13 @@ def evaluate_pca_model(
     components = pd.DataFrame(model.components_, columns=x.columns)
     components.insert(0, "component", component_names)
 
+    silhouette, cluster_k = metrics.calcular_silhueta_clusterizada(embedding[:, :2])
     metrics_row = {
         "model_name": "PCA",
         "n_neighbors": n_neighbors,
-        "silhouette": metrics.calcular_silhueta(embedding[:, :2], y),
+        "silhouette": silhouette,
+        "cluster_k": cluster_k,
+        "external_silhouette": metrics.calcular_silhueta(embedding[:, :2], y),
         "trustworthiness": metrics.calcular_trustworthiness(
             x,
             embedding[:, :2],
@@ -170,9 +173,10 @@ def evaluate_kernel_pca_model(
     x: pd.DataFrame,
     y: pd.Series,
     kernel: str = "rbf",
+    gamma: float | None = None,
     n_neighbors: int = 10,
 ) -> KernelPCAResult:
-    model = kernel_pca.KernelPCA.create(kernel=kernel)
+    model = kernel_pca.KernelPCA.create(kernel=kernel, gamma=gamma)
     embedding = model.fit_transform(x)
     eigenvalues = model.eigenvalues_
     ratios = eigenvalues / eigenvalues.sum()
@@ -188,12 +192,15 @@ def evaluate_kernel_pca_model(
             "cumulative_ratio": np.cumsum(ratios),
         }
     )
+    silhouette, cluster_k = metrics.calcular_silhueta_clusterizada(embedding[:, :2])
     metrics_row = {
         "model_name": "Kernel PCA",
         "kernel": kernel,
         "gamma": model.gamma_,
         "n_neighbors": n_neighbors,
-        "silhouette": metrics.calcular_silhueta(embedding[:, :2], y),
+        "silhouette": silhouette,
+        "cluster_k": cluster_k,
+        "external_silhouette": metrics.calcular_silhueta(embedding[:, :2], y),
         "trustworthiness": metrics.calcular_trustworthiness(
             x,
             embedding[:, :2],
@@ -205,6 +212,113 @@ def evaluate_kernel_pca_model(
         variance=variance,
         metrics=pd.DataFrame([metrics_row]),
     )
+
+
+def evaluate_kernel_pca_grid(
+    x: pd.DataFrame,
+    y: pd.Series,
+    kernel: str = "rbf",
+    gamma_values: list[float | None] | None = None,
+    n_neighbors: int = 10,
+) -> pd.DataFrame:
+    """Grid sobre gamma para Kernel PCA (RBF). Seleção pela silhueta interna."""
+    if gamma_values is None:
+        gamma_values = [0.05, 0.1, 0.25, 0.5, 1.0]
+    rows = []
+    for gamma in gamma_values:
+        result = evaluate_kernel_pca_model(
+            x, y, kernel=kernel, gamma=gamma, n_neighbors=n_neighbors
+        )
+        row = result.metrics.iloc[0].to_dict()
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def evaluate_fuzzy_kmeans_model(
+    x: pd.DataFrame,
+    y: pd.Series,
+    max_n_cluster: int = 5,
+    max_iter: int = 10,
+    m_values: list[float] | None = None,
+    m: float = 2.0,
+) -> pd.DataFrame:
+    """Return all runs of the (k, m) grid.
+
+    The representative of each (k, m) pair is the seed with the lowest J_m;
+    the final selection of the (k, m) pair is made by silhouette in
+    ``export_kmeans_like_results``.
+    """
+    if m_values is None:
+        m_values = [m]
+    from apns.models.kmeans_fuzzy import KMeansFuzzy
+
+    results = []
+    for k in range(2, max_n_cluster + 1):
+        for m_value in m_values:
+            for iteration in range(max_iter):
+                model = KMeansFuzzy.create(
+                    n_clusters=k, random_state=iteration, m=m_value
+                )
+                model.fit(x)
+                clusters = model.predict(x)
+                results.append(
+                    {
+                        "model_name": KMeansFuzzy.__name__,
+                        "objective_name": KMeansFuzzy.objective_name,
+                        "iter": iteration,
+                        "k": k,
+                        "m": m_value,
+                        "objective": model.compute_objective(x),
+                        "silhouette": metrics.calcular_silhueta(x, clusters),
+                        "ari": metrics.calcular_ari(y, clusters),
+                        "n_iter": model.n_iter,
+                    }
+                )
+    return pd.DataFrame(results)
+
+
+def evaluate_em_model(
+    x: pd.DataFrame,
+    y: pd.Series,
+    max_n_cluster: int = 5,
+    max_iter: int = 10,
+    covariance_types: list[str] | None = None,
+) -> pd.DataFrame:
+    """EM grid over covariance_type x k x seeds.
+
+    Per (k, covariance_type): seed with lowest -logLik wins (same
+    likelihood family, comparable). Per k: covariance_type with lowest
+    BIC wins (BIC penalizes complexity, comparable across types).
+    Silhouette/ARI are recorded post-hoc and never drive selection.
+    """
+    from apns.models.gaussian_mixture import GaussianMixture
+
+    if covariance_types is None:
+        covariance_types = ["spherical", "diag", "tied", "full"]
+    results = []
+    for k in range(2, max_n_cluster + 1):
+        for cov in covariance_types:
+            for iteration in range(max_iter):
+                model = GaussianMixture.create(
+                    n_clusters=k, random_state=iteration, covariance_type=cov
+                )
+                model.fit(x)
+                clusters = model.predict(x)
+                results.append(
+                    {
+                        "model_name": GaussianMixture.__name__,
+                        "objective_name": GaussianMixture.objective_name,
+                        "iter": iteration,
+                        "k": k,
+                        "covariance_type": cov,
+                        "objective": model.compute_objective(x),
+                        "bic": model.bic(x),
+                        "silhouette": metrics.calcular_silhueta(x, clusters),
+                        "ari": metrics.calcular_ari(y, clusters),
+                        "n_iter": model.n_iter,
+                    }
+                )
+    return pd.DataFrame(results)
 
 
 def evaluate_kernel_fuzzy_kmeans_model(

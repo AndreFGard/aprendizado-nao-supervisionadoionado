@@ -13,11 +13,13 @@ class KernelPCA:
     def create(
         cls,
         kernel: str = "rbf",
+        gamma: float | None = None,
         random_state: int | None = 42,
     ) -> Self:
         return cls(
             SklearnKernelPCA(
-                kernel=kernel,  # pyright: ignore[reportArgumentType],
+                kernel=kernel,  # pyright: ignore[reportArgumentType]
+                gamma=gamma,
                 random_state=random_state,
             )
         )

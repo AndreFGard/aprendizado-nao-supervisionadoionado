@@ -70,3 +70,4 @@ results/*
 
 # if not gitignored, typst will always show a change on main.pdf. instead we should copy the file explicitly when we need it versioned.
 report/main.pdf
+report/slide.pdf

@@ -48,6 +48,12 @@ def normalizar_atributos(X: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def carregar_iris_normalizado(dataset_path: str | Path | None = None):
+    """Carrega a base Iris com atributos padronizados (z-score)."""
+    X, y = carregar_iris(dataset_path=dataset_path)
+    return normalizar_atributos(X), y
+
+
 if __name__ == "__main__":
     X, y = carregar_iris()
 

@@ -3,12 +3,19 @@ from pathlib import Path
 
 import pandas as pd
 
-from apns.data import carregar_iris, normalizar_atributos
+from apns.data import (
+    carregar_iris,
+    carregar_iris_normalizado,
+    normalizar_atributos,
+)
 from apns.experiments import (
     _prepare_results_directories,
     _save_figure,
     _save_table,
     _select_best_row,
+    evaluate_em_model,
+    evaluate_fuzzy_kmeans_model,
+    evaluate_kernel_pca_grid,
     evaluate_kernel_pca_model,
     evaluate_kmeanslike_model,
     evaluate_pca_model,
@@ -55,17 +62,61 @@ def _best_kmeanslike_per_k(rows: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def _best_fuzzy_per_k(rows: pd.DataFrame) -> pd.DataFrame:
+    """Joint (k, m) search: min J_m per (k, m), then max silhouette per k.
+
+    The smallest m wins silhouette ties, so the selection is deterministic.
+    The returned frame has one row per k, which is what the Sil x k curve
+    and the final k* selection need.
+    """
+    best_pm = rows.loc[
+        rows.groupby(["k", "m"])["objective"].idxmin()
+    ]
+    return (
+        best_pm.sort_values(
+            ["k", "silhouette", "m"],
+            ascending=[True, False, True],
+        )
+        .drop_duplicates("k")
+        .sort_values("k")
+        .reset_index(drop=True)
+    )
+
+
 def export_kmeans_like_results(
     configs: list[KMeansLikeConfig],
     results_dir: Path | None = None,
 ) -> dict[str, pd.DataFrame]:
-    x, y = carregar_iris()
+    x, y = carregar_iris_normalizado()
     tables_dir, figures_dir = _prepare_results_directories(results_dir)
+
+    fuzzy_m_values = [1.5, 2.0, 2.5]
+    em_cov_types = ["spherical", "diag", "tied", "full"]
 
     best_by_model: dict[str, pd.DataFrame] = {}
     for config in configs:
-        rows = evaluate_kmeanslike_model(x, y, config.cls)
-        best = _best_kmeanslike_per_k(rows)
+        if config.cls is GaussianMixture:
+            rows = evaluate_em_model(x, y, covariance_types=em_cov_types)
+            # Per (k, cov_type): lowest -logLik over seeds (same family).
+            # Per k: lowest BIC over cov_types (penalizes complexity).
+            best_seed = rows.loc[
+                rows.groupby(["k", "covariance_type"])["objective"].idxmin()
+            ].reset_index(drop=True)
+            best = (
+                best_seed.loc[best_seed.groupby("k")["bic"].idxmin()]
+                .sort_values("k")
+                .reset_index(drop=True)
+            )
+        elif config.cls is KMeansFuzzy:
+            rows = evaluate_fuzzy_kmeans_model(x, y, m_values=fuzzy_m_values)
+            # Single joint search over (k, m): within each pair, the seed
+            # with the lowest J_m wins (same scale); among the pairs, the
+            # one with the highest silhouette wins. The Sil x k curve shows
+            # the best m per k; k* is the k of the globally selected pair.
+            best = _best_fuzzy_per_k(rows)
+        else:
+            rows = evaluate_kmeanslike_model(x, y, config.cls)
+            best = _best_kmeanslike_per_k(rows)
 
         _save_table(rows, tables_dir, f"{config.prefix}_metrics.csv")
         _save_table(best, tables_dir, f"{config.prefix}_best_by_k.csv")
@@ -86,7 +137,7 @@ def export_kmeans_like_results(
 
 
 def export_pca_results(results_dir: Path | None = None) -> pd.DataFrame:
-    x, y = carregar_iris()
+    x, y = carregar_iris_normalizado()
     tables_dir, figures_dir = _prepare_results_directories(results_dir)
     result = evaluate_pca_model(x, y)
 
@@ -115,18 +166,29 @@ def export_pca_results(results_dir: Path | None = None) -> pd.DataFrame:
 
 def export_kernel_pca_results(
     kernel: str = "rbf",
+    gamma_values: list[float | None] | None = None,
     results_dir: Path | None = None,
 ) -> pd.DataFrame:
-    x, y = carregar_iris()
+    if gamma_values is None:
+        gamma_values = [0.05, 0.1, 0.25, 0.5, 1.0]
+    x, y = carregar_iris_normalizado()
     tables_dir, figures_dir = _prepare_results_directories(results_dir)
-    result = evaluate_kernel_pca_model(x, y, kernel=kernel)
+
+    grid = evaluate_kernel_pca_grid(
+        x, y, kernel=kernel, gamma_values=gamma_values
+    )
+    _save_table(grid, tables_dir, "kpca_metrics.csv")
+
+    best_row = _select_best_row(grid, metric="silhouette")
+    best_gamma = best_row["gamma"]
+    result = evaluate_kernel_pca_model(x, y, kernel=kernel, gamma=best_gamma)
 
     _save_table(result.variance, tables_dir, "kpca_variance.csv")
     _save_table(result.metrics, tables_dir, "kpca_embedding_metrics.csv")
     _save_figure(
         plot_variance_explained(
             result.variance,
-            "Kernel PCA: variância explicada pelas primeiras componentes",
+            f"Kernel PCA ({kernel}, gamma={best_gamma:g}): variância explicada",
             max_components=10,
         ),
         figures_dir / "kpca_variance.png",
@@ -137,9 +199,15 @@ def export_kernel_pca_results(
             y,
             x_label="Componente kernel 1",
             y_label="Componente kernel 2",
-            title=f"Kernel PCA ({kernel}): duas primeiras componentes",
+            title=f"Kernel PCA ({kernel}, gamma={best_gamma:g}): duas primeiras componentes",
         ),
         figures_dir / "kpca_scatter.png",
+    )
+    print(
+        f"Kernel PCA: melhor gamma={best_gamma:g}, "
+        f"silhueta={best_row['silhouette']:.4f}, ARI-ext={best_row['external_silhouette']:.4f}"
+        if best_row["silhouette"] is not None
+        else f"Kernel PCA: melhor gamma={best_gamma:g}"
     )
     return result.variance
 
