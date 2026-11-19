@@ -291,11 +291,14 @@ def export_kernel_fuzzy_kmeans_results(
         metric="silhouette",
         fallback_metric="objective",
     )
+    best_sigma2 = best_result["sigma2"]
+    if pd.isna(best_sigma2):
+        best_sigma2 = None
     model = kernel_fuzzy_kmeans.KernelFuzzyKMeans.create(
         n_clusters=int(best_result["k"]),
         random_state=int(best_result["iter"]),
         m=float(best_result["m"]),
-        sigma2=best_result["sigma2"],
+        sigma2=best_sigma2,
         n_init=n_init,
         max_iter=model_max_iter,
         tol=tol,
