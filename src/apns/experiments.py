@@ -1217,7 +1217,10 @@ def export_umap_results(
     _save_table(results, tables_dir, "umap_metrics.csv")
 
     top_configurations = (
-        results.sort_values("silhouette", ascending=False)
+        results.sort_values(
+            ["trustworthiness", "silhouette"],
+            ascending=[False, False],
+        )
         .head(n_best_configurations)[["n_neighbors", "min_dist"]]
         .itertuples(index=False, name=None)
     )
@@ -1296,7 +1299,13 @@ def export_umap_results(
         figures_dir / "umap_parameter_comparison.png",
     )
 
-    best_result = _select_best_row(results, metric="silhouette")
+    best_result = (
+        results.sort_values(
+            ["trustworthiness", "silhouette"],
+            ascending=[False, False],
+        )
+        .iloc[0]
+    )
     embedding = embeddings[
         (int(best_result["n_neighbors"]), float(best_result["min_dist"]))
     ]

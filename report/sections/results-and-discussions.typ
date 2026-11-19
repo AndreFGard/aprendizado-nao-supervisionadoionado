@@ -35,7 +35,7 @@
 
   == K-Medoids
 
-  Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Para cada $k$, as sementes produziram soluções idênticas em silhueta, inércia, ARI e rótulos, portanto o experimento resulta em quatro configurações distintas. A @tab:kmedoids resume os resultados.
+  Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Para cada $k$, as execuções produziram soluções idênticas em silhueta, inércia, ARI e rótulos devido à inicialização heurística fixa utilizada pelo modelo. Assim, essas repetições representam determinismo da configuração, não estimativas independentes de estabilidade. A @tab:kmedoids resume os resultados.
 
   #figure(
     table(
@@ -55,7 +55,7 @@
     kind: table,
   ) <tab:kmedoids>
 
-  A silhueta diminui com $k$ (@fig:kmed-sil), atingindo o máximo em $k = 2$ (0,608). A inércia também diminui continuamente (@fig:kmed-inercia). Entre $k = 2$ e $k = 3$, a queda é de 62,1 (23,0%); em seguida, passa a 7,7 (3,7%) e a 13,2 (6,6%), sem um cotovelo tão pronunciado.
+  A silhueta diminui com $k$ (@fig:kmed-sil), atingindo o máximo em $k = 2$ (0,608). Como neste método a silhueta foi calculada com a distância city-block, os valores não são diretamente comparáveis às silhuetas euclidianas dos demais métodos de agrupamento. A inércia também diminui continuamente (@fig:kmed-inercia). Entre $k = 2$ e $k = 3$, a queda é de 62,1 (23,0%); em seguida, passa a 7,7 (3,7%) e a 13,2 (6,6%), sem um cotovelo tão pronunciado.
 
   #figure(
     image("../imagens/kmedoids_silhouette.png", width: 100%),
@@ -478,7 +478,7 @@
 
   == t-SNE
 
-  Foram avaliadas as perplexidades 5, 10, 20 e 30, com inicialização por PCA, taxa de aprendizado automática, limite de 1000 iterações e semente 42. Todas as execuções registraram 999 iterações. A @tab:tsne resume a silhueta não supervisionada, obtida por K-Means no embedding, a silhueta externa pelas espécies reais, a divergência de Kullback-Leibler (KL) e a trustworthiness com dez vizinhos.
+  Foram avaliadas as perplexidades 5, 10, 20 e 30, com inicialização por PCA, taxa de aprendizado automática, limite de 1000 iterações e semente 42. Todas as execuções atingiram o limite de 1000 iterações e registraram $n_"iter" = 999$, portanto este resultado não demonstra convergência formal. A @tab:tsne resume a silhueta não supervisionada, obtida por K-Means no embedding, a silhueta externa pelas espécies reais, a divergência de Kullback-Leibler (KL) e a trustworthiness com dez vizinhos.
 
   #figure(
     table(
@@ -508,7 +508,7 @@
 
   A silhueta não supervisionada cresce com a perplexidade, selecionando perplexidade 30, resultando em 0,865. A silhueta externa pelas espécies reais é apresentada apenas como referência e não participa da seleção. A divergência KL foi usada como informação complementar.
 
-  Na análise de estabilidade da perplexidade 30, as sementes de 0 a 9 produziram silhueta não supervisionada média de 0,865 e trustworthiness média de 0,989, ambas sem variação observável. A silhueta externa média foi 0,483. Esses resultados indicam estabilidade das métricas nesse conjunto de execuções, mas não avaliam a robustez em novas amostras ou configurações.
+  Na análise das sementes de 0 a 9 na perplexidade 30, a silhueta não supervisionada média foi 0,865 e a trustworthiness média foi 0,989, ambas sem variação observável. A silhueta externa média foi 0,483. Como a inicialização foi fixada em PCA, esse desvio zero não constitui evidência de estabilidade robusta sob inicializações aleatórias ou em novas amostras.
 
   #figure(
     image("../imagens/tsne_perplexity_comparison.png", width: 100%),
@@ -522,7 +522,7 @@
     caption: [t-SNE: embeddings bidimensionais para as perplexidades 5, 10, 20 e 30, coloridos pela espécie real.],
   ) <fig:tsne-emb>
 
-  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta mede a separação das espécies reais no plano e não a qualidade de um agrupamento, por isso não é comparável às silhuetas dos métodos de agrupamento. Já a trustworthiness mede a preservação dos dez vizinhos mais próximos e é uma métrica complementar.
+  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta não supervisionada mede o particionamento produzido pelo K-Means no plano; ela não deve ser interpretada diretamente como separação das espécies reais. A silhueta externa pelas espécies reais é apresentada como avaliação complementar, assim como a trustworthiness, que mede a preservação dos dez vizinhos mais próximos.
 
   == UMAP
 
@@ -546,9 +546,11 @@
     kind: table,
   ) <tab:umap>
 
-  A silhueta não supervisionada variou entre 0,597 (`n_neighbors` = 5 e `min_dist` = 0,5) e 0,902 (`n_neighbors` = 30 e `min_dist` = 0,0), conforme a @fig:umap-sil. A trustworthiness com dez vizinhos variou entre 0,971 e 0,980.
+  A silhueta não supervisionada variou entre 0,597 (`n_neighbors` = 5 e `min_dist` = 0,5) e 0,902 (`n_neighbors` = 30 e `min_dist` = 0,0), conforme a @fig:umap-sil. A trustworthiness com dez vizinhos variou entre 0,971 e 0,980. A silhueta mede principalmente a formação de grupos compactos no embedding pelo K-Means e não deve ser interpretada isoladamente como preservação geométrica ou separação biológica verdadeira.
 
-  A @tab:umap-sementes resume a estabilidade das quatro melhores configurações pela silhueta não supervisionada obtida com a semente 42, avaliadas em dez sementes.
+  Para a seleção da configuração, a trustworthiness foi considerada a métrica principal e a silhueta apenas como apoio. Os dez vizinhos são preservados melhor pela configuração (`n_neighbors` = 15, `min_dist` = 0,5), que obteve trustworthiness de 0,9801; a silhueta dessa configuração foi 0,8632.
+
+  A @tab:umap-sementes resume as configurações com maior trustworthiness e silhueta secundária, avaliadas em dez sementes.
 
   #figure(
     table(
@@ -560,17 +562,17 @@
         [*`n_neighbors`*], [*`min_dist`*], [*Silhueta média*], [*DP silhueta*], [*Trustworthiness média (DP)*]
       ),
       table.hline(),
-      [30], [0,0], [0,893], [0,025], [0,977 (0,002)],
-      [30], [0,1], [0,876], [0,023], [0,977 (0,002)],
-      [15], [0,0], [0,854], [0,023], [0,975 (0,002)],
+      [15], [0,1], [0,846], [0,024], [0,977 (0,002)],
+      [30], [0,5], [0,813], [0,034], [0,978 (0,002)],
       [15], [0,5], [0,781], [0,051], [0,979 (0,001)],
+      [10], [0,5], [0,756], [0,070], [0,979 (0,001)],
       table.hline(),
     ),
     caption: [Estabilidade das quatro melhores configurações em dez sementes (0 a 9). Os desvios são padrões amostrais.],
     kind: table,
   ) <tab:umap-sementes>
 
-  Entre essas configurações, `n_neighbors` = 30 e `min_dist` = 0,0 obteve a maior silhueta não supervisionada média (0,893 ± 0,025). A trustworthiness média ficou entre 0,975 e 0,979. Os resultados indicam estabilidade satisfatória dessa configuração selecionada sem utilização dos rótulos reais.
+  As diferenças entre essas configurações são comparáveis aos desvios de silhueta observados, especialmente entre os rankings próximos de trustworthiness. Assim, o ranking não é totalmente distinguível: `n_neighbors` = 15 e `min_dist` = 0,5 obteve a maior média de trustworthiness (0,9792), enquanto as demais oscilaram perto de 0,977–0,979. Os resultados indicam apenas consistência parcial, não estabilidade estatística plenamente separada.
 
   #figure(
     image("../imagens/umap_parameter_comparison.png", width: 100%),
