@@ -25,7 +25,11 @@ from apns.models import treinable_model
 from apns.models.gaussian_mixture import GaussianMixture
 from apns.models.kmeans import KMeans
 from apns.models.kmeans_fuzzy import KMeansFuzzy
-from apns.visualization import plot_component_scatter, plot_silhouette_by_k
+from apns.visualization import (
+    plot_component_scatter,
+    plot_silhouette_by_k,
+    plot_variance_explained,
+)
 
 
 @dataclasses.dataclass
@@ -84,10 +88,18 @@ def export_kmeans_like_results(
 def export_pca_results(results_dir: Path | None = None) -> pd.DataFrame:
     x, y = carregar_iris()
     tables_dir, figures_dir = _prepare_results_directories(results_dir)
-    result = evaluate_pca_model(x)
+    result = evaluate_pca_model(x, y)
 
     _save_table(result.variance, tables_dir, "pca_variance.csv")
     _save_table(result.components, tables_dir, "pca_components.csv")
+    _save_table(result.metrics, tables_dir, "pca_embedding_metrics.csv")
+    _save_figure(
+        plot_variance_explained(
+            result.variance,
+            "PCA: variância explicada por componente",
+        ),
+        figures_dir / "pca_variance.png",
+    )
     _save_figure(
         plot_component_scatter(
             result.embedding,
@@ -107,9 +119,18 @@ def export_kernel_pca_results(
 ) -> pd.DataFrame:
     x, y = carregar_iris()
     tables_dir, figures_dir = _prepare_results_directories(results_dir)
-    result = evaluate_kernel_pca_model(x, kernel=kernel)
+    result = evaluate_kernel_pca_model(x, y, kernel=kernel)
 
     _save_table(result.variance, tables_dir, "kpca_variance.csv")
+    _save_table(result.metrics, tables_dir, "kpca_embedding_metrics.csv")
+    _save_figure(
+        plot_variance_explained(
+            result.variance,
+            "Kernel PCA: variância explicada pelas primeiras componentes",
+            max_components=10,
+        ),
+        figures_dir / "kpca_variance.png",
+    )
     _save_figure(
         plot_component_scatter(
             result.embedding,

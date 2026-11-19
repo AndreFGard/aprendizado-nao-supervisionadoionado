@@ -351,6 +351,59 @@ def plot_component_scatter(
     return figure
 
 
+def plot_variance_explained(
+    variance: pd.DataFrame,
+    title: str,
+    max_components: int | None = None,
+) -> Figure:
+    """Barras da variância por componente e linha da variância acumulada."""
+    ordered = variance.sort_values("component")
+    shown = ordered if max_components is None else ordered.head(max_components)
+
+    figure, axis = plt.subplots(figsize=(9, 5))
+    bars = axis.bar(
+        shown["component"],
+        100 * shown["explained_variance_ratio"],
+        color="steelblue",
+        label="Variância por componente",
+    )
+    axis.bar_label(
+        bars,
+        labels=[f"{value:.1f}%" for value in 100 * shown["explained_variance_ratio"]],
+        padding=3,
+        fontsize=8,
+    )
+    axis.set_xlabel("Componente")
+    axis.set_ylabel("Variância explicada (%)")
+    axis.set_xticks(shown["component"])
+    axis.set_ylim(0, 100 * shown["explained_variance_ratio"].max() * 1.25)
+    axis.grid(axis="y", alpha=0.2)
+
+    cumulative_axis = axis.twinx()
+    cumulative_axis.plot(
+        shown["component"],
+        100 * shown["cumulative_ratio"],
+        color="crimson",
+        marker="o",
+        label="Variância acumulada",
+    )
+    cumulative_axis.set_ylabel("Variância acumulada (%)")
+    cumulative_axis.set_ylim(0, 105)
+
+    handles, labels = axis.get_legend_handles_labels()
+    cumulative_handles, cumulative_labels = cumulative_axis.get_legend_handles_labels()
+    figure.legend(
+        handles + cumulative_handles,
+        labels + cumulative_labels,
+        loc="lower center",
+        ncol=2,
+    )
+
+    axis.set_title(title)
+    figure.tight_layout(rect=(0, 0.06, 1, 1))
+    return figure
+
+
 def plot_membership_degrees(
     membership: np.ndarray,
     cluster_names: dict[int, str] | None = None,
@@ -366,7 +419,10 @@ def plot_membership_degrees(
     else:
         axis.set_yticks(
             range(membership.shape[1]),
-            [cluster_names.get(cluster, f"Cluster {cluster}") for cluster in range(membership.shape[1])],
+            [
+                cluster_names.get(cluster, f"Cluster {cluster}")
+                for cluster in range(membership.shape[1])
+            ],
         )
     figure.colorbar(image, ax=axis, label="Pertinência")
     figure.tight_layout()
@@ -439,9 +495,7 @@ def plot_kmeans_like_metrics(df_metrics: pd.DataFrame, model_name: str):
         title=f"{model_name} Silhouette Score",
     )
 
-    best_values = df_metrics.groupby(["k", "model_name"])[
-        ["silhouette", "ari"]
-    ].max()
+    best_values = df_metrics.groupby(["k", "model_name"])[["silhouette", "ari"]].max()
     best_values = best_values.rename(
         columns={
             "silhouette": "Max silhouette",

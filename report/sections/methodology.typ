@@ -13,7 +13,7 @@
 
   Neste trabalho, o algoritmo foi implementado com a classe _KMeans_ do Scikit-learn @pedregosa2011scikit, utilizando a SSE e inicialização aleatória, a fim de reproduzir a implementação de referência @han_kamber_pei_2012, com as demais configurações seguindo as predefinições da classe.
 
-  Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um por 10 vezes, com a sua respectiva inicialização aleatória.
+  Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um executado 10 vezes com sementes aleatórias distintas.
 
   Para cada execução, foram registrados o Silhouette Score, o ARI e o valor final da função objetivo. Para cada valor de $k$, foi selecionada a execução de menor função objetivo, e a configuração final foi escolhida pela maior silhueta entre estes. Assim, o modelo foi ajustado novamente com seus respectivos parâmetros e semente para gerar as visualizações do agrupamento, dos graus de pertinência e da convergência da função objetivo.
 
@@ -34,7 +34,7 @@
 
   Neste trabalho, o algoritmo foi implementado com a classe FCM @bezdek1981pattern, utilizando a SSE e inicialização aleatória, com as demais configurações seguindo as predefinições da classe, incluindo _m_. Para calcular o Silhouette Score e o ARI, cada observação foi associada ao agrupamento de maior pertinência, obtendo-se um particionamento _crisp_.
 
-  Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um por 10 vezes, com a sua respectiva inicialização aleatória.
+  Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um executado 10 vezes com sementes aleatórias distintas.
 
   Para cada execução, foram registrados o Silhouette Score, o ARI e o valor final da função objetivo. Para cada valor de $k$, foi selecionada a execução de menor função objetivo, e a configuração final foi escolhida pela maior silhueta entre estes. Assim, o modelo foi ajustado novamente com seus respectivos parâmetros e semente para gerar as visualizações do agrupamento, dos graus de pertinência e da convergência da função objetivo.
 
@@ -79,7 +79,7 @@
 
   Neste trabalho, a classe `PCA` do Sklearn foi usada com as configurações predefinidas.
 
-  Foram registrados os autovalores e as proporções de variância explicada e acumulada, além dos vetores das componentes. Ademais, foi produzido um gráfico de dispersão com as duas primeiras componentes, com os pontos de dados coloridos por espécie para fins de visualização.
+  Foram registrados os autovalores e as proporções de variância explicada e acumulada, além dos vetores das componentes. No plano das duas primeiras componentes, também foram calculadas a silhueta, tomando as espécies como rótulos de avaliação, e a trustworthiness com dez vizinhos, medida em relação aos quatro atributos originais. Para a visualização, foram produzidos o gráfico de dispersão das observações nesse plano, colorido pela espécie real, e o gráfico de variância por componente.
 
   == Kernel PCA
 
@@ -87,8 +87,7 @@
 
   Neste trabalho, foi usada a classe KernelPCA do Scikit-learn com kernel RBF, $K(x_i, x_j) = exp(-gamma ||x_i - x_j||^2)$, e os demais parâmetros foram utilizados conforme predefinidos, como o gamma, que é heuristicamente escolhido pela biblioteca.
 
-  Como no caso do PCA, foi produzido um gráfico de dispersão com as duas primeiras componentes, além de haverem sido registrados os autovalores, a proporção de cada autovalor em relação à soma dos autovalores retornados e a soma dessas proporções.
-
+  Foram registrados os autovalores, a proporção de cada um em relação à soma dos autovalores retornados e o acumulado, além da silhueta no plano das duas primeiras componentes e da trustworthiness com dez vizinhos. Como no caso do PCA, foram produzidos o gráfico de dispersão das duas primeiras componentes e o gráfico da variância para os primeiros dez componentes.
   == t-SNE
 
   O t-SNE foi utilizado para representar os quatro atributos numéricos da base Iris em um espaço bidimensional, preservando principalmente relações de vizinhança. Para isso, converte as distâncias no espaço original em em probabilidades de afinidade e busca aproximar as distribuições de probabilidade de vizinhança nos espaços original e reduzido, utilizando uma distribuição t de Student no espaço de baixa dimensão.
@@ -104,11 +103,5 @@
   O algoritmo foi implementado com a classe `UMAP` da biblioteca umap-learn, utilizando distância euclidiana, dois componentes e semente aleatória 42. Os atributos foram utilizados em seus valores originais, sem os rótulos de espécie. Foram avaliados os valores de n_neighbors $in {5, 10, 15, 30}$ e min_dist $in {0.0, 0.1, 0.5}$, totalizando 12 configurações. O parâmetro n_neighbors controla o tamanho da vizinhança utilizada na construção do grafo, enquanto min_dist controla o grau de compactação dos pontos no espaço de baixa dimensão.
 
   A avaliação dos embeddings foi realizada pelo Silhouette Score no espaço bidimensional, utilizando as espécies reais apenas como referência para avaliar sua separação, e pela trustworthiness com dez vizinhos, calculada a partir dos dados originais e dos embeddings. Como análise adicional de estabilidade, as quatro melhores configurações segundo a silhueta obtida com a semente 42 foram executadas novamente com dez sementes ($0$ a $9$); para cada configuração, foram registradas a média e o desvio padrão amostral da silhueta e da trustworthiness. A configuração com maior silhueta na análise inicial foi selecionada para a visualização final. As métricas foram exportadas em tabelas e os embeddings e resultados das avaliações foram representados em gráficos comparativos.
-
-  == Comparabilidade entre as técnicas de redução
-
-  As quatro técnicas recebem os mesmos quatro atributos sem padronização explícita, e nenhuma recebe a espécie no ajuste. Entretanto, PCA e Kernel PCA obtêm componentes por decomposição da matriz de dados centrada e da matriz de kernel centrada, respectivamente, enquanto t-SNE e UMAP constroem embeddings bidimensionais para preservar relações de vizinhança. PCA e Kernel PCA foram executadas uma vez, sem busca de parâmetros; no Kernel PCA, o kernel RBF e `gamma=0.25` ficaram fixos, e os dois eixos apresentados são simplesmente as primeiras componentes ordenadas pelo espectro, sem seleção por silhueta ou trustworthiness. Em contraste, t-SNE variou a perplexidade e incluiu uma análise de estabilidade com dez sementes para perplexidade 30; UMAP variou `n_neighbors` e `min_dist` e repetiu, com dez sementes, as quatro melhores configurações iniciais. Em ambos, a configuração inicial foi selecionada pela silhueta calculada com as espécies reais como rótulos, enquanto a trustworthiness foi uma métrica complementar.
-
-  Portanto, embora os rótulos não participem do ajuste de nenhum método, a seleção de configuração de t-SNE e UMAP é guiada pelas espécies, ao contrário da PCA e do Kernel PCA. Essa diferença deve ser considerada ao comparar visualmente a separação entre espécies: as coordenadas dos embeddings não são componentes principais, e as proporções espectrais do Kernel PCA não são diretamente comparáveis às da PCA linear; t-SNE e UMAP, por sua vez, não produzem proporções de variância explicada por eixo.
 
 ]

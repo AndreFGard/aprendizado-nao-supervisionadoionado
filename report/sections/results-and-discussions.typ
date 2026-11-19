@@ -378,7 +378,7 @@
 
   == PCA
 
-  A  @tab:pca, com as principais saídas da biblioteca utilizada, resume quanta variância cada componente explica.
+  A @tab:pca, com as principais saídas da biblioteca utilizada, resume quanta variância cada componente explica.
 
   #figure(
     table(
@@ -399,8 +399,7 @@
   ) <tab:pca>
 
 
-  //TODO se fizermos normalização, precisa rever isso aqui.
-  As duas primeiras componentes explicam 97,8% da variância total, com a PC1 particualrmente influenciada pela _petal_length_, enquanto A PC2, por sua vez é mais influenciada pela sépala @tab:pca-loadings.
+  Como mostra a @fig:pca-var, a variância concentra-se quase inteiramente nas duas primeiras componentes, que juntas explicam 97,8% do total. A PC1 é particularmente influenciada pela _petal_length_, enquanto a PC2 é mais influenciada pelas variáveis da sépala @tab:pca-loadings.
 
   #figure(
     table(
@@ -420,14 +419,17 @@
     kind: table,
   ) <tab:pca-loadings>
 
-  // TODO: gerar os gráficos de variância (pca_variance.png e kpca_variance.png) listados no todo.md.
+  #figure(
+    image("../imagens/pca_variance.png", width: 100%),
+    caption: [PCA: proporção de variância explicada por componente e variância acumulada.],
+  ) <fig:pca-var>
 
   #figure(
     image("../imagens/pca_scatter.png", width: 100%),
     caption: [PCA: observações projetadas nas duas primeiras componentes principais, coloridas pela espécie real.],
   ) <fig:pca-scatter>
 
-  A projeção (@fig:pca-scatter) separa claramente a _setosa_, mas ainda há sobreposição entre _versicolor_ e _virginica_, como nos métodos de agrupamento. A silhueta no plano, calculada com as espécies reais como rótulos, é 0,534, abaixo das demais técnicas de redução. Já a trustworthiness com dez vizinhos é 0,983, indicando que a PCA preserva bem as relações de vizinhança locais.
+  A projeção (@fig:pca-scatter) separa claramente a _setosa_, mas ainda há sobreposição entre _versicolor_ e _virginica_, como nos métodos de agrupamento. A silhueta no plano, calculada com as espécies reais como rótulos, é 0,5344, abaixo das demais técnicas de redução. Já a trustworthiness com dez vizinhos é 0,9830, indicando que a PCA preserva bem as relações de vizinhança locais.
 
   == Kernel PCA
 
@@ -451,14 +453,19 @@
     kind: table,
   ) <tab:kpca>
 
-  Em contraste com a PCA linear, a variância no espaço de características induzido pelo kernel está distribuída por um número maior de direções. Até a quarta componente ainda responde por 4,7% da soma dos autovalores, e a cauda do espectro se estende por dezenas de componentes.
+  Em contraste com a PCA linear, a variância no espaço de características induzido pelo kernel se espalha por um número maior de direções (@fig:kpca-var), de forma que a quarta componente ainda responde por 4,7% da soma dos autovalores, e a cauda do espectro se estende por dezenas de componentes.
+
+  #figure(
+    image("../imagens/kpca_variance.png", width: 100%),
+    caption: [Kernel PCA (RBF, $gamma = 0,25$): proporção dos autovalores nas dez primeiras componentes e acumulado.],
+  ) <fig:kpca-var>
 
   #figure(
     image("../imagens/kpca_scatter.png", width: 100%),
     caption: [Kernel PCA (RBF, $gamma = 0,25$): observações projetadas nas duas primeiras componentes, coloridas pela espécie real.],
   ) <fig:kpca-scatter>
 
-  Na projeção (@fig:kpca-scatter), a setosa permanece separada das demais espécies, enquanto versicolor e virginica apresentam maior distinção do que na PCA linear. Essa separação ocorre sobretudo na segunda componente, pois os centróides das duas espécies são muito próximos na primeira componente (−0,36 e −0,42), enquanto são distantes na segunda (−0,36 e 0,34). Nas métricas complementares, a silhueta no plano, calculada com as espécies reais como rótulos, é de 0,608, superior à da PCA linear (0,534), mas inferior às do t-SNE (0,632) e do UMAP (0,675). Já a trustworthiness com dez vizinhos cai para 0,939 (contra 0,983 na PCA), indicando que a melhora na separação geométrica das espécies ocorre acompanhada uma introdução de vizinhos artificiais.
+  Na projeção (@fig:kpca-scatter), a _setosa_ permanece separada das demais espécies, enquanto _versicolor_ e _virginica_ apresentam maior distinção do que na PCA linear. Essa separação ocorre sobretudo na segunda componente, visto que os centróides das duas espécies quase coincidem na primeira (−0,36 e −0,42), mas se afastam na segunda (−0,36 e 0,34). Nas métricas complementares, a silhueta no plano é de 0,607, superior à da PCA linear (0,534), mas inferior às do t-SNE (0,632) e do UMAP (0,675). Já a trustworthiness com dez vizinhos cai para 0,938, contra 0,983 na PCA. Portanto, nota-se que essa representação introduziu vizinhos artificiais, indicando uma distorção na estrutura, apesar da separação melhor.
 
   == t-SNE
 
