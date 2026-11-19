@@ -67,7 +67,7 @@ def plot_silhouette_by_k(best_by_k: pd.DataFrame, model_name: str) -> Figure:
     axis.set_xlabel("Número de clusters (k)")
     axis.set_ylabel("Silhouette")
     axis.set_title(f"{model_name}: Silhouette × k")
-    axis.set_xticks(range(1, int(best_by_k["k"].max()) + 1))
+    axis.set_xticks(sorted(best_by_k["k"].unique()))
     axis.grid()
     figure.tight_layout()
     return figure

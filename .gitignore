@@ -66,5 +66,7 @@ ENV/
 
 uv.lock
 
-results/**/*.png
-results/**/*.csv
+results/*
+
+# if not gitignored, typst will always show a change on main.pdf. instead we should 
+report/main.pdf

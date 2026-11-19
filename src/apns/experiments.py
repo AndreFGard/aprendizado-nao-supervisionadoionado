@@ -88,7 +88,7 @@ def evaluate_kmeanslike_model(
     max_iter: int = 10,
 ) -> pd.DataFrame:
     results = []
-    for k in range(1, max_n_cluster + 1):
+    for k in range(2, max_n_cluster + 1):
         for iteration in range(max_iter):
             model = model_cls.create(n_clusters=k, random_state=iteration)
             model.fit(x)
