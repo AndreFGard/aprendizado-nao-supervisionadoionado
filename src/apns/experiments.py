@@ -797,8 +797,8 @@ def evaluate_tsne_model(
         max_iter=max_iter,
         random_state=random_state,
     )
+    silhouette, cluster_k = metrics.calcular_silhueta_clusterizada(embedding)
 
-    # A silhueta usa os rótulos reais para medir a separabilidade no embedding.
     return pd.DataFrame(
         [
             {
@@ -806,7 +806,9 @@ def evaluate_tsne_model(
                 "perplexity": perplexity,
                 "max_iter": max_iter,
                 "random_state": random_state,
-                "silhouette": metrics.calcular_silhueta(embedding, y),
+                "silhouette": silhouette,
+                "cluster_k": cluster_k,
+                "external_silhouette": metrics.calcular_silhueta(embedding, y),
                 "kl_divergence": model.kl_divergence_,
                 "n_iter": model.n_iter_,
                 "trustworthiness": metrics.calcular_trustworthiness(
@@ -857,14 +859,16 @@ def export_tsne_results(
             random_state=random_state,
         )
         embeddings[perplexity] = embedding
+        silhouette, cluster_k = metrics.calcular_silhueta_clusterizada(embedding)
         result_rows.append(
             {
                 "model_name": tsne.TSNE.__name__,
                 "perplexity": perplexity,
                 "max_iter": max_iter,
                 "random_state": random_state,
-                # Compara a separação dos rótulos conhecidos no embedding.
-                "silhouette": metrics.calcular_silhueta(embedding, y),
+                "silhouette": silhouette,
+                "cluster_k": cluster_k,
+                "external_silhouette": metrics.calcular_silhueta(embedding, y),
                 "kl_divergence": model.kl_divergence_,
                 "n_iter": model.n_iter_,
                 "trustworthiness": metrics.calcular_trustworthiness(
@@ -886,13 +890,16 @@ def export_tsne_results(
             max_iter=max_iter,
             random_state=seed,
         )
+        silhouette, cluster_k = metrics.calcular_silhueta_clusterizada(embedding)
         seed_rows.append(
             {
                 "model_name": tsne.TSNE.__name__,
                 "perplexity": 30.0,
                 "max_iter": max_iter,
                 "random_state": seed,
-                "silhouette": metrics.calcular_silhueta(embedding, y),
+                "silhouette": silhouette,
+                "cluster_k": cluster_k,
+                "external_silhouette": metrics.calcular_silhueta(embedding, y),
                 "kl_divergence": model.kl_divergence_,
                 "n_iter": model.n_iter_,
                 "trustworthiness": metrics.calcular_trustworthiness(
@@ -913,6 +920,12 @@ def export_tsne_results(
                 "n_neighbors_trustworthiness": trustworthiness_n_neighbors,
                 "silhouette_mean": seed_results["silhouette"].mean(),
                 "silhouette_std": seed_results["silhouette"].std(),
+                "external_silhouette_mean": seed_results[
+                    "external_silhouette"
+                ].mean(),
+                "external_silhouette_std": seed_results[
+                    "external_silhouette"
+                ].std(),
                 "kl_divergence_mean": seed_results["kl_divergence"].mean(),
                 "kl_divergence_std": seed_results["kl_divergence"].std(),
                 "trustworthiness_mean": seed_results["trustworthiness"].mean(),
@@ -963,6 +976,7 @@ def evaluate_umap_model(
         min_dist=min_dist,
         random_state=random_state,
     )
+    silhouette, cluster_k = metrics.calcular_silhueta_clusterizada(embedding)
     return pd.DataFrame(
         [
             {
@@ -970,7 +984,9 @@ def evaluate_umap_model(
                 "n_neighbors": n_neighbors,
                 "min_dist": min_dist,
                 "random_state": random_state,
-                "silhouette": metrics.calcular_silhueta(embedding, y),
+                "silhouette": silhouette,
+                "cluster_k": cluster_k,
+                "external_silhouette": metrics.calcular_silhueta(embedding, y),
                 "trustworthiness": metrics.calcular_trustworthiness(
                     x,
                     embedding,
@@ -1023,13 +1039,19 @@ def export_umap_results(
             )
             parameter = (n_neighbors, min_dist)
             embeddings[parameter] = embedding
+            silhouette, cluster_k = metrics.calcular_silhueta_clusterizada(embedding)
             result_rows.append(
                 {
                     "model_name": umap.UMAP.__name__,
                     "n_neighbors": n_neighbors,
                     "min_dist": min_dist,
                     "random_state": random_state,
-                    "silhouette": metrics.calcular_silhueta(embedding, y),
+                    "silhouette": silhouette,
+                    "cluster_k": cluster_k,
+                    "external_silhouette": metrics.calcular_silhueta(
+                        embedding,
+                        y,
+                    ),
                     "trustworthiness": metrics.calcular_trustworthiness(
                         x,
                         embedding,
@@ -1057,13 +1079,19 @@ def export_umap_results(
                 min_dist=float(min_dist),
                 random_state=seed,
             )
+            silhouette, cluster_k = metrics.calcular_silhueta_clusterizada(embedding)
             seed_rows.append(
                 {
                     "model_name": umap.UMAP.__name__,
                     "n_neighbors": int(n_neighbors),
                     "min_dist": float(min_dist),
                     "random_state": seed,
-                    "silhouette": metrics.calcular_silhueta(embedding, y),
+                    "silhouette": silhouette,
+                    "cluster_k": cluster_k,
+                    "external_silhouette": metrics.calcular_silhueta(
+                        embedding,
+                        y,
+                    ),
                     "trustworthiness": metrics.calcular_trustworthiness(
                         x,
                         embedding,
@@ -1086,6 +1114,12 @@ def export_umap_results(
                 "n_neighbors_trustworthiness": trustworthiness_n_neighbors,
                 "silhouette_mean": group["silhouette"].mean(),
                 "silhouette_std": group["silhouette"].std(),
+                "external_silhouette_mean": group[
+                    "external_silhouette"
+                ].mean(),
+                "external_silhouette_std": group[
+                    "external_silhouette"
+                ].std(),
                 "trustworthiness_mean": group["trustworthiness"].mean(),
                 "trustworthiness_std": group["trustworthiness"].std(),
             }
