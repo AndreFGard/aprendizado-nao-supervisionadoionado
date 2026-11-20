@@ -179,7 +179,14 @@ def export_kernel_pca_results(
     )
     _save_table(grid, tables_dir, "kpca_metrics.csv")
 
-    best_row = _select_best_row(grid, metric="silhouette")
+    best_row = (
+        grid.dropna(subset=["trustworthiness"])
+        .sort_values(
+            ["trustworthiness", "silhouette"],
+            ascending=[False, False],
+        )
+        .iloc[0]
+    )
     best_gamma = best_row["gamma"]
     result = evaluate_kernel_pca_model(x, y, kernel=kernel, gamma=best_gamma)
 
@@ -205,8 +212,9 @@ def export_kernel_pca_results(
     )
     print(
         f"Kernel PCA: melhor gamma={best_gamma:g}, "
-        f"silhueta={best_row['silhouette']:.4f}, ARI-ext={best_row['external_silhouette']:.4f}"
-        if best_row["silhouette"] is not None
+        f"trustworthiness={best_row['trustworthiness']:.4f}, "
+        f"silhueta={best_row['silhouette']:.4f}"
+        if best_row["trustworthiness"] is not None
         else f"Kernel PCA: melhor gamma={best_gamma:g}"
     )
     return result.variance
