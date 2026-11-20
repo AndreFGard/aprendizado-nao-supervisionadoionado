@@ -1,8 +1,6 @@
 import dataclasses
-import math
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from apns.data import (
@@ -36,7 +34,6 @@ from apns.models.kmeans import KMeans
 from apns.models.kmeans_fuzzy import KMeansFuzzy
 from apns.visualization import (
     plot_component_scatter,
-    plot_em_clusters_comparison,
     plot_silhouette_by_k,
     plot_variance_explained,
 )
@@ -110,56 +107,6 @@ def export_kmeans_like_results(
                 .sort_values("k")
                 .reset_index(drop=True)
             )
-
-            # BIC = 2*(-logL) + p*log(n). Saving the decomposition makes the
-            # (non-monotonic) BIC curve auditable: the likelihood gain of an
-            # extra component can be smaller than the parameter penalty.
-            n_parameters = {
-                "spherical": lambda k: 6 * k - 1,
-                "diag": lambda k: 9 * k - 1,
-                "tied": lambda k: 5 * k + 9,
-                "full": lambda k: 15 * k - 1,
-            }
-            bic_detail = best[["k", "covariance_type", "objective", "bic"]].copy()
-            bic_detail["n_params"] = [
-                n_parameters[str(cov)](int(k))
-                for k, cov in zip(bic_detail["k"], bic_detail["covariance_type"])
-            ]
-            bic_detail["penalty"] = bic_detail["n_params"] * math.log(len(x))
-            bic_detail["bic_check"] = (
-                2 * bic_detail["objective"] + bic_detail["penalty"]
-            )
-            _save_table(bic_detail, tables_dir, "em_bic_decomposition.csv")
-
-            # The k=3 partition is not selected by the protocol (k*=2 by
-            # silhouette), but it is the best external diagnostic (ARI 0.904).
-            # Exporting it lets the report show the five misallocated points
-            # instead of merely asserting the number.
-            partitions: dict[int, np.ndarray] = {}
-            for _, row in best[best["k"].isin([2, 3])].iterrows():
-                model = GaussianMixture.create(
-                    n_clusters=int(row["k"]),
-                    random_state=int(row["iter"]),
-                    covariance_type=str(row["covariance_type"]),
-                )
-                partitions[int(row["k"])] = model.fit(x).predict(x)
-
-            _save_figure(
-                plot_em_clusters_comparison(x, partitions, y),
-                figures_dir / "em_clusters.png",
-            )
-            if 3 in partitions:
-                contingency = pd.crosstab(
-                    pd.Series(y.to_numpy(), name="species"),
-                    pd.Series(partitions[3], name="cluster"),
-                ).rename(
-                    index={
-                        "Iris-setosa": "Setosa",
-                        "Iris-versicolor": "Versicolor",
-                        "Iris-virginica": "Virginica",
-                    }
-                )
-                contingency.to_csv(tables_dir / "em_k3_ari_contingency.csv")
         elif config.cls is KMeansFuzzy:
             rows = evaluate_fuzzy_kmeans_model(x, y, m_values=fuzzy_m_values)
             # Single joint search over (k, m): within each pair, the seed
@@ -232,10 +179,14 @@ def export_kernel_pca_results(
     )
     _save_table(grid, tables_dir, "kpca_metrics.csv")
 
-    # Trustworthiness is the primary criterion for embedding parameters:
-    # the internal silhouette rewards compact islands in the 2-D plane and
-    # is kept only as a descriptive diagnostic.
-    best_row = _select_best_row(grid, metric="trustworthiness")
+    best_row = (
+        grid.dropna(subset=["trustworthiness"])
+        .sort_values(
+            ["trustworthiness", "silhouette"],
+            ascending=[False, False],
+        )
+        .iloc[0]
+    )
     best_gamma = best_row["gamma"]
     result = evaluate_kernel_pca_model(x, y, kernel=kernel, gamma=best_gamma)
 

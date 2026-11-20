@@ -1,5 +1,5 @@
 #let results-and-discussions = [
-  = Resultados e discussões <sec:results>
+  = Resultados e discussões
 
   == K-Means
 
@@ -30,12 +30,12 @@
     caption: [Silhouette em função do número de clusters $k$ (K-Means).],
   ) <fig:kmeans-sil>
 
-
-  A partição com $k^* = 2$ separa as 50 _setosa_ e reúne as outras duas espécies em outro, explicando a silhueta alta e o ARI moderado. O ARI é máximo em $k = 3$ (0,620), quando 25 das 150 observações (16,7%), todas de _versicolor_/_virginica_, ficam fora do grupo majoritário. Assim, nota-se que a silhueta reduz conforme $k$ aumenta, e ARI também reduz após o seu máximo.
+  //TODO Adicionar um scatter plot comparando k2 e k3.
+  A partição com $k^* = 2$ isola as 50 _setosa_ em um grupo e reúne as 100 observações de _versicolor_ e _virginica_ no outro. A silhueta reflete a separação da _setosa_, mas o ARI decorre da fusão entre _versicolor_ e _virginica_. A silhueta decresce de $k = 2$ até $k = 5$, enquanto o ARI é máximo em $k = 3$ (0,620), com silhueta de 0,459. A divergência entre os critérios é similar à observada no K-Medoids, em que a silhueta favorece 2 grupos, mas o ARI 3. Nessa partição de $k = 3$, a _setosa_ permanece isolada, mas  25 das 100 observações das outras espécies não pertencem ao respectivo grupo majoritário. Com $k = 4$ e $k = 5$, a _setosa_ passa a ser subdividida (27/23), acompanhada do decrescimento de ambas as métricas.
 
   == K-Medoids
 
-  Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Para cada $k$, as sementes produziram soluções idênticas em silhueta, inércia, ARI e rótulos, portanto o experimento resulta em quatro configurações distintas. A @tab:kmedoids resume os resultados.
+  Foram realizadas 40 execuções, com $k in {2, 3, 4, 5}$ e dez sementes por valor de $k$. Para cada $k$, as execuções produziram soluções idênticas em silhueta, inércia, ARI e rótulos devido à inicialização heurística fixa utilizada pelo modelo. Assim, essas repetições representam determinismo da configuração, não estimativas independentes de estabilidade. A @tab:kmedoids resume os resultados.
 
   #figure(
     table(
@@ -55,7 +55,7 @@
     kind: table,
   ) <tab:kmedoids>
 
-  A silhueta diminui com $k$ (@fig:kmed-sil), atingindo o máximo em $k = 2$ (0,608). A inércia também diminui continuamente (@fig:kmed-inercia). Entre $k = 2$ e $k = 3$, a queda é de 62,1 (23,0%); em seguida, passa a 7,7 (3,7%) e a 13,2 (6,6%), sem um cotovelo tão pronunciado.
+  A silhueta diminui com $k$ (@fig:kmed-sil), atingindo o máximo em $k = 2$ (0,608). Como neste método a silhueta foi calculada com a distância city-block, os valores não são diretamente comparáveis às silhuetas euclidianas dos demais métodos de agrupamento. A inércia também diminui continuamente (@fig:kmed-inercia). Entre $k = 2$ e $k = 3$, a queda é de 62,1 (23,0%); em seguida, passa a 7,7 (3,7%) e a 13,2 (6,6%), sem um cotovelo tão pronunciado.
 
   #figure(
     image("../imagens/kmedoids_silhouette.png", width: 100%),
@@ -110,93 +110,79 @@
   ) <fig:fkm-sil>
 
 
-  Entre as partições selecionadas para cada $k$, o ARI é máximo em $k = 3$ (0,620 com $m = 1,5$), com silhueta 0,459, enquanto a partição de $k^* = 2$ isola as 50 _setosa_, como no K-Means. O máximo global de ARI no grid é 0,630 ($k = 3$, $m = 2,0$), mas esse par não maximiza a silhueta. Não houve variabilidade entre sementes em $k = 2$ e $k = 3$ para nenhum valor de $m$, mas em $k = 4$ e $k = 5$ apareceram mínimos locais. Em $k = 3$, 25 das 150 observações (16,7%) ficam fora do grupo majoritário, similarmente ao KMeans.
+  Entre as partições selecionadas para cada $k$, o ARI é máximo em $k = 3$ (0,620 com $m = 1,5$), com silhueta 0,459, enquanto a partição de $k^* = 2$ isola as 50 _setosa_ perfeitamente, como no K-Means. O máximo global de ARI no grid é 0,630 ($k = 3$, $m = 2,0$; não mostrado na tabela), mas esse par não maximiza a silhueta e não foi selecionado; o ARI é mostrado apenas como avaliação externa. Não houve variabilidade entre sementes em $k = 2$ e $k = 3$ para nenhum valor de $m$; em $k = 4$ e $k = 5$ houve mínimos locais, sobretudo em $k = 5$ com $m = 1,5$ (silhueta entre 0,339 e 0,395). Em $k = 3$, 25 das 150 observações (16,7%) ficam fora do grupo majoritário, e em $k = 4$ a _setosa_ passa a ser dividida (49/1), também em acordo com o K-Means.
 
-  Nesse sentido, destaca-se a semelhança com o K-Means também em $k^* = 2$, cuja partição crisp é idêntica à do K-Means para os três valores de $m$. A matriz de pertinências, porém, muda. Entre $m = 1,5$ e $m = 2,5$ a diferença em norma de Frobenius é 2,80, com variação máxima de 0,26 em uma observação: a suavização existe, mas desaparece quando arredondamos para um único grupo. A @fig:fkm-pert mostra os dois extremos na mesma ordenação por espécie (painéis empilhados), evidenciando pertinências mais difusas em $m = 2,5$ sem nenhuma troca de grupo. A diferença de silhueta entre $m = 1,5$ e $m = 2,0$ em $k = 3$ é de só 0,002 (0,459 contra 0,457), mas isso é uma comparação isolada. O apêndice reúne os doze pares $(k, m)$ e índices fuzzy próprios; como a silhueta é calculada sobre rótulos crisp, ela premia $m$ pequeno por construção, e PC, PE e Xie–Beni entram como contraponto, não como nova regra de escolha.
-
-  #figure(
-    image("../imagens/fuzzy_memberships.png", width: 100%),
-    caption: [Fuzzy K-Means em $k = 2$: pertinências para $m = 1,5$ (selecionado, acima) e $m = 2,5$ (abaixo), na mesma ordenação por espécie. As partições crisp coincidem; a diferença entre as matrizes ($norm(Delta U)_F = 2,80$, máx. $0,26$) mede a suavização sem troca de grupo.],
-  ) <fig:fkm-pert>
+  Além disso, embora a fuzzificação suavize as fronteiras, uma vez feito _crisp_, o particionamento para $k^*$ do Fuzzy K-Means foi idêntico ao do K-Means, e as métricas se mantêm muito próximas para $k > 2$. A diferença entre $m = 1,5$ e $m = 2,0$ é pequena (por exemplo, 0,459 contra 0,457 em $k = 3$), indicando baixa sensibilidade a $m$ neste conjunto.
 
 
   == Kernel Fuzzy K-Means
 
-  Foram realizadas 480 execuções: 48 combinações de $k in {2, 3, 4, 5}$, $m in {1,5; 2,0; 2,5}$ e $sigma^2 in {"automático"; 0,5; 1,0; 2,0}$, com dez sementes cada. As sementes produziram soluções idênticas em 34 combinações; as variações ocorreram principalmente em $k >= 3$, com $sigma^2 = 0,5$ ou $m = 2,5$. A @tab:kfkm resume os resultados agregados por $k$.
+  Foram realizadas 480 execuções: 48 combinações de $k in {2, 3, 4, 5}$, $m in {1,5; 2,0; 2,5}$ e $sigma^2 in {"automático"; 0,5; 1,0; 2,0}$, com dez sementes por combinação e cinco inicializações internas por execução. Em cada combinação, a menor função objetivo entre as dez sementes identificou a melhor execução. Na @tab:kfkm, essa melhor execução é apresentada por $k$, junto da combinação $(m, sigma^2)$ de maior silhueta para aquele $k$.
 
   #figure(
     table(
-      columns: 5,
+      columns: 6,
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*$k$*], [*Sil. média*], [*Sil. mín.*], [*ARI média*], [*ARI máx.*]),
+      table.header([*$k$*], [*$m$*], [*$sigma^2$*], [*Silhouette*], [*ARI*], [*Objetivo*]),
       table.hline(),
-      [2], [0,580], [0,580], [0,568], [0,568],
-      [3], [0,456], [0,456], [0,652], [0,652],
-      [4], [0,258], [0,258], [0,612], [0,612],
-      [5], [0,286], [0,286], [0,487], [0,487],
+      [2], [1,5], [1,0], [0,580], [0,568], [76,72],
+      [3], [2,5], [0,5], [0,540], [0,529], [24,87],
+      [4], [1,5], [2,0], [0,398], [0,587], [34,46],
+      [5], [2,5], [1,0], [0,374], [0,495], [10,29],
       table.hline(),
     ),
-    caption: [Kernel Fuzzy K-Means: considerando todas as combinações de $m$, $sigma^2$ e sementes.],
+    caption: [Kernel Fuzzy K-Means: melhor combinação $(m, sigma^2)$ por $k$, segundo a silhueta, após a seleção da melhor semente pela função objetivo dentro de cada combinação.],
     kind: table,
   ) <tab:kfkm>
 
-  Para cada valor de $k$, foi selecionada pela menor função objetivo uma única partição entre as dez inicializações e combinações de parâmetros. A silhueta dessas partições decresce após $k = 2$: 0,580 em $k = 2$, 0,456 em $k = 3$, 0,258 em $k = 4$ e 0,286 em $k = 5$. Assim, $k^* = 2$ pela silhueta. O ARI da partição final é 0,568.
-
-  Pela maior silhueta entre as partições selecionadas por objetivo, a configuração final foi $k = 2$, $m = 2,5$ e $sigma^2 = 2,0$, com silhueta de 0,5802 e ARI de 0,5681. Essa solução separa a _setosa_ das demais espécies. Na @fig:kfkm-pert, a _setosa_ apresenta pertinência elevada a um agrupamento, enquanto as espécies _versicolor_ e _virginica_ mostram pertinências intermediárias na região de fronteira. A atribuição pelo maior grau de pertinência produz a partição exibida na @fig:kfkm-clusters.
+  A silhueta máxima entre as configurações ocorre em $k = 2$, com $m = 1,5$ e $sigma^2 = 1,0$. A configuração final apresenta silhueta de 0,5802 e ARI de 0,5681. As demais curvas decrescem até $k = 5$; a única diferença relevante é $k = 4$, cujo ARI é 0,587, mas que não supera a silhueta de $k = 2$. O ARI foi utilizado somente como avaliação externa e não participou da escolha da configuração ou de $k^*$.
 
   #figure(
-    image("../imagens/kernel_fuzzy_kmeans_memberships.png", width: 100%),
-    caption: [Graus de pertinência da melhor configuração por silhueta ($k = 2$, $m = 2,5$, $sigma^2 = 2,0$).],
-  ) <fig:kfkm-pert>
+    image("../imagens/kernel_fuzzy_kmeans_silhouette.png", width: 100%),
+    caption: [Silhouette por $k$ do Kernel Fuzzy K-Means, mostrando a melhor combinação $(m, sigma^2)$ por cada valor de $k$.],
+  ) <fig:kfkm-sil>
 
-  #figure(
-    image("../imagens/kernel_fuzzy_kmeans_clusters.png", width: 100%),
-    caption: [Melhor agrupamento por silhueta, projetado em `sepal_length` e `sepal_width`.],
-  ) <fig:kfkm-clusters>
-
-  A @fig:kfkm-conv mostra a convergência da configuração selecionada. Como os valores da função objetivo dependem de $m$ e de $sigma^2$, eles não são usados para comparar configurações.
-
-  #figure(
-    image("../imagens/kernel_fuzzy_kmeans_objective_convergence.png", width: 100%),
-    caption: [Convergência da função objetivo da melhor configuração por silhueta.],
-  ) <fig:kfkm-conv>
-
-  Os ARI das outras partições por $k$ são apresentados somente como avaliação externa: 0,652 em $k = 3$, 0,612 em $k = 4$ e 0,487 em $k = 5$. Essas métricas não participam da escolha de $k^*$ nem da escolha da execução. Valores extremos dos parâmetros produziram instabilidade em algumas execuções.
-
-  Na partição final em $k^* = 2$, a atribuição pelo maior grau de pertinência reproduz a separação da _setosa_ e concentra as confusões entre _versicolor_ e _virginica_ (@tab:kfkm-k3-contingencia).
+  A configuração final separa perfeitamente as 50 observações de _setosa_ das demais espécies, conforme a @tab:kfkm-k2-contingencia. As confusões ficam concentradas entre _versicolor_ e _virginica_.
 
   #figure(
     table(
-      columns: 4,
+      columns: 3,
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*Espécie*], [*Virginica*], [*Versicolor*], [*Setosa*]),
+      table.header([*Espécie*], [*Setosa*], [*Versicolor*]),
       table.hline(),
-      [Setosa], [0], [0], [50],
-      [Versicolor], [4], [46], [0],
-      [Virginica], [38], [12], [0],
+      [Setosa], [50], [0],
+      [Versicolor], [0], [50],
+      [Virginica], [0], [50],
       table.hline(),
     ),
-    caption: [Contingência entre espécies reais e grupos da melhor configuração por ARI com $k = 3$.],
+    caption: [Contingência entre espécies reais e grupos da melhor configuração por silhueta com $k = 2$.],
     kind: table,
-  ) <tab:kfkm-k3-contingencia>
+  ) <tab:kfkm-k2-contingencia>
 
   #figure(
-    image("../imagens/kernel_fuzzy_kmeans_k3_ari_clusters.png", width: 100%),
-    caption: [Melhor configuração por ARI ($k = 3$), projetada em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo.],
-  ) <fig:kfkm-k3-clusters>
+    image("../imagens/kernel_fuzzy_kmeans_k2_silhouette_clusters.png", width: 100%),
+    caption: [Melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2 = 1,0$), projetada em `petal_length` × `petal_width`.],
+  ) <fig:kfkm-k2-clusters>
 
   #figure(
-    image("../imagens/kernel_fuzzy_kmeans_k3_ari_memberships.png", width: 100%),
-    caption: [Graus de pertinência da melhor configuração por ARI com $k = 3$, agrupados pelo nome da espécie majoritária.],
-  ) <fig:kfkm-k3-pert>
+    image("../imagens/kernel_fuzzy_kmeans_k2_silhouette_memberships.png", width: 100%),
+    caption: [Graus de pertinência da melhor configuração por silhueta com $k = 2$.],
+  ) <fig:kfkm-k2-pert>
 
-  Na matriz de pertinências, 116 das 150 observações têm pertinência máxima abaixo de 0,6. Esse valor quantifica uma fronteira ampla de atribuição incerta, principalmente entre _versicolor_ e _virginica_; a _setosa_ apresenta atribuição mais definida. A configuração obtém silhueta de 0,5313 e ARI de 0,8178.
+  A @fig:kfkm-conv mostra a convergência da função objetivo da configuração final. O objetivo diminui até estabilizar em 76,7187 após 18 iterações. Como os valores dependem de $m$ e de $sigma^2$, foram usados apenas para selecionar a melhor semente dentro de cada configuração e não para ordenar configurações diferentes.
 
-  Em síntese, o Kernel Fuzzy K-Means separa a _setosa_ das demais espécies e apresenta maior dificuldade na fronteira entre _versicolor_ e _virginica_.
+  #figure(
+    image("../imagens/kernel_fuzzy_kmeans_objective_convergence.png", width: 100%),
+    caption: [Convergência da função objetivo da melhor configuração por silhueta ($k = 2$, $m = 1,5$, $sigma^2 = 1,0$).],
+  ) <fig:kfkm-conv>
+
+  Em síntese, a busca atual adapta o procedimento do Fuzzy K-Means: dentro de cada tripla $(k, m, sigma^2)$, a função objetivo escolhe a melhor dentre as dez sementes; em seguida, a silhueta compara as combinações de parâmetros e seleciona o modelo final. Essa abordagem evita que diferenças de escala em $J_m$ decorrentes de $m$ ou $sigma^2$ favoreçam diretamente uma configuração.
+
+  Para fins de comparação entre métodos de agrupamento, a tabela conjunta considera apenas as configurações selecionadas por silhueta. Ela não é um ranking absoluto: a silhueta do K-Medoids usa distância city-block, enquanto os demais modelos usaram distância euclidiana; no DBSCAN, a métrica é calculada após excluir as observações de ruído e deve ser interpretada junto da cobertura. t-SNE e UMAP não integram essa comparação por serem técnicas de redução de dimensionalidade, não algoritmos de agrupamento.
 
   == Misturas gaussianas com EM
 
@@ -216,18 +202,20 @@
       [5], [`tied`], [0,300], [0,727], [326,7], [823,8],
       table.hline(),
     ),
-    caption: [Misturas gaussianas com EM: por $k$, tipo de covariância de menor BIC, $-$log-verossimilhança mínima, ARI],
+    caption: [Misturas gaussianas com EM: por $k$, tipo de covariância de menor BIC, $-$log-verossimilhança mínima entre sementes para o tipo selecionado, ARI],
     kind: table,
   ) <tab:em>
 
-  A silhueta das configurações selecionadas decresce de 0,580 em $k = 2$ para 0,300 em $k = 5$ (@fig:em-sil), de modo que $k^* = 2$, como nos demais métodos. Nesse valor, a partição _crisp_ isola as 50 _setosa_ em um grupo e reúne as 100 observações de _versicolor_ e _virginica_ no outro, que é a mesma partição obtida pelo K-Means padronizado. Em $k = 2$, todas as execuções produzem essa mesma partição, diferindo apenas no número de parâmetros e, portanto, no BIC.
+  O efeito da covariância cresce com $k$: em $k = 2$ todas as formas recuperaram a mesma partição, diferindo apenas na complexidade e no BIC, e em $k = 3$ as formas flexíveis capturaram melhor a fronteira _versicolor_/_virginica_ (ARI 0,904 com `full`/`tied`), enquanto a forma `spherical` apresentou perda considerável no ARI. O BIC escolheu `full` para $k = 2$ e $k = 3$ e `tied` para $k = 4$ e $k = 5$.
+
+  A silhueta das configurações selecionadas decresce de 0,580 em $k = 2$ para 0,300 em $k = 5$ (@fig:em-sil), um pouco mais rapidamente que em outros métodos, de modo que $k^* = 2$, com silhueta 0,580 e ARI 0,568. A partição crisp deste $k$ isola as 50 _setosa_ em um agrupamento, e as 100 observações de _versicolor_ e _virginica_ no outro, idêntica à do K-Means padronizado.
 
   #figure(
     image("../imagens/em_silhouette.png", width: 100%),
     caption: [Silhouette em função do número de clusters $k$ (misturas gaussianas com EM).],
   ) <fig:em-sil>
 
-  O tipo de covariância, escolhido por BIC, não foi decidido por diferença marginal. A @tab:em-bic mostra o grid completo: em $k = 3$, `full` fica com 804,5, contra 855,7 de `tied`, 968,2 de `diag` e 1231,7 de `spherical`; a folga sobre o segundo colocado é 51,1. Em $k = 2$, 4 e 5 as folgas são 112,7, 8,8 e 19,6 — todas acima de 6, limiar usual de evidência forte @kass1995bayes. O menor BIC global ocorre em $k = 2$ (797,7), apontando na mesma direção da silhueta; `em_bic_decomposition.csv` registra como penalidade e verossimilhança se combinam em cada valor.
+  A @tab:em-bic detalha a escolha do tipo de covariância por BIC. As diferenças para o segundo colocado são 112,7, 51,1, 8,8 e 19,6 para $k = 2, 3, 4, 5$, respectivamente; todas excedem 6, valor frequentemente usado como referência para evidência forte @kass1995bayes. O menor BIC global também ocorre em $k = 2$ (797,7), em acordo com a escolha por silhueta.
 
   #figure(
     table(
@@ -235,7 +223,7 @@
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*$k$*], [*Spherical*], [*Diag*], [*Tied*], [*Full*], [*Folga p/ 2º*]),
+      table.header([*$k$*], [*Spherical*], [*Diag*], [*Tied*], [*Full*], [*Dif. p/ 2º*]),
       table.hline(),
       [2], [1334,7], [1081,7], [910,4], [*797,7*], [112,7],
       [3], [1231,7], [968,2], [855,7], [*804,5*], [51,1],
@@ -243,13 +231,13 @@
       [5], [1111,4], [925,0], [*823,8*], [843,4], [19,6],
       table.hline(),
     ),
-    caption: [EM: BIC por tipo de covariância e número de componentes. Em negrito, a menor estratégia de cada $k$; a última coluna é a diferença para a segunda melhor.],
+    caption: [Misturas gaussianas: BIC por tipo de covariância e número de componentes. Em negrito, o menor BIC para cada $k$.],
     kind: table,
   ) <tab:em-bic>
 
-  Como diagnóstico externo, vale registrar que o ARI em $k = 3$ sobe para 0,904, contra 0,568 em $k^* = 2$; a silhueta desse modelo cai para 0,373, e é por isso que ele não foi escolhido.
+  O ganho principal da mistura gaussiana aparece em $k = 3$: o ARI chega a 0,904, o maior do estudo, embora a silhueta (0,373) seja inferior à de $k^* = 2$. Esse resultado é uma avaliação externa, não o critério usado para escolher $k$.
 
-  As cinco observações que saem do grupo majoritário em $k = 3$ são _versicolor_ alocadas junto às _virginica_. A @tab:em-k3-cont e `em_k3_contingency.csv` trazem as contagens, e a @fig:em-clusters-k3 mostra a partição no plano das pétalas. O mapa de posteriores (@fig:em-post) reforça a leitura: a entropia média é 0,032, a probabilidade máxima mínima é 0,635 e nenhuma observação fica abaixo de 0,6. A incerteza existe, mas é localizada nos pontos de fronteira.
+  As cinco observações que não pertencem ao grupo majoritário de sua espécie são _versicolor_ atribuídas ao grupo majoritariamente _virginica_ (@tab:em-k3-cont). A projeção da @fig:em-clusters-k3 mostra essa partição no plano das pétalas. As probabilidades posteriores (@fig:em-post) indicam entropia média de 0,032; a menor probabilidade máxima é 0,635, e nenhuma observação fica abaixo de 0,6. A incerteza é, portanto, localizada nos pontos de fronteira.
 
   #figure(
     table(
@@ -264,20 +252,19 @@
       [Virginica], [0], [0], [50],
       table.hline(),
     ),
-    caption: [EM em $k = 3$: contingência entre espécies reais e o grupo de maior posterior. Os 5 erros são _versicolor_ no grupo majoritariamente _virginica_.],
+    caption: [EM com $k = 3$: contingência entre a espécie real e o grupo de maior probabilidade posterior.],
     kind: table,
   ) <tab:em-k3-cont>
 
   #figure(
     image("../imagens/em_clusters_k3.png", width: 90%),
-    caption: [EM em $k = 3$ no plano `petal_length` × `petal_width`; a legenda informa a composição de cada grupo.],
+    caption: [EM com $k = 3$ no plano `petal_length` × `petal_width`.],
   ) <fig:em-clusters-k3>
 
   #figure(
     image("../imagens/em_posteriors.png", width: 100%),
-    caption: [EM em $k = 3$: posteriores ordenados por espécie e confiança da atribuição no plano das pétalas; em vermelho, as observações fora do grupo majoritário.],
+    caption: [EM com $k = 3$: probabilidades posteriores por espécie e confiança das atribuições.],
   ) <fig:em-post>
-
 
   == Agrupamento hierárquico Centroid Linkage
 
@@ -308,20 +295,38 @@
     caption: [Dendrograma truncado do agrupamento hierárquico (Centroid Linkage, distância euclidiana), com linha de corte para a partição em $k^* = 2$.],
   ) <fig:hier-dend>
 
-  Para $k = 2$, a partição separa a _setosa_ (50 observações) das demais espécies (100 observações), a mesma partição obtida pela Mistura Gaussiana, com silhueta de 0,580 e ARI de 0,568. A silhueta elevada reflete a separação da _setosa_, e o ARI é moderado porque _versicolor_ e _virginica_ permanecem juntas.
+  Para $k = 2$, a partição separa a _setosa_ (50 observações) das demais espécies (100 observações), a mesma partição obtida pela Mistura Gaussiana, com silhueta de 0,580 e ARI de 0,568. A silhueta elevada reflete a separação da _setosa_, e o ARI é moderado porque _versicolor_ e _virginica_ permanecem juntas em um único grupo, denominado `"Versicolor + Virginica"`.
 
-  Para $k = 3$, a _setosa_ permanece isolada e as demais observações são divididas em grupos menores, com silhueta de 0,479 e ARI de 0,562. A separação entre _versicolor_ e _virginica_ permanece limitada.
+  Para $k = 3$, a _setosa_ permanece isolada. Um segundo grupo contém as 50 _versicolor_ e 47 das 50 _virginica_; o terceiro grupo contém as 3 _virginica_ restantes. A silhueta é 0,479 e o ARI é 0,562.
 
   #figure(
     image("../imagens/hierarchical_kstar_petal_clusters.png", width: 82%),
-    caption: [Centroid Linkage com $k^* = 2$, projetado em `petal_length` × `petal_width`; os rótulos indicam a espécie majoritária de cada grupo.],
+    caption: [Centroid Linkage com $k^* = 2$, projetado em `petal_length` × `petal_width`; o segundo grupo reúne majoritariamente _versicolor_ e _virginica_ e é identificado como `"Versicolor + Virginica"` por não haver maioria única de espécie.],
   ) <fig:hier-kstar-clusters>
 
-  Como o Centroid Linkage não é monotônico, o `cut_tree` pode retornar menos rótulos que o $k$ solicitado. Por isso, as partições desta análise foram reconstruídas a partir das primeiras $n-k$ fusões, garantindo exatamente $k$ grupos.
+  Como o Centroid Linkage não é monotônico, o corte realizado pelo `cut_tree` ou por `fcluster` pode não corresponder diretamente à reconstrução baseada no número de fusões em toda a faixa de $k$. Nesta análise, as partições foram reconstruídas a partir das primeiras $n-k$ fusões, garantindo exatamente $k$ grupos. A reconstrução manual foi comparada com `fcluster(..., criterion = "maxclust")`; o ARI entre os dois métodos foi 1,0 para $k in {2,3,4,5}$, indicando equivalência prática nesta base.
 
-  Para $k = 4$, a silhueta é 0,406 e o ARI é 0,552. Para $k = 5$, são obtidos 0,374 e 0,551, respectivamente. As subdivisões ocorrem principalmente na região de _versicolor_ e _virginica_, e ambas as partições são efetivamente diferentes da configuração com $k = 3$.
+  #figure(
+    table(
+      columns: 2,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*$k$*], [*ARI reconstrução × fcluster*]),
+      table.hline(),
+      [2], [1,000],
+      [3], [1,000],
+      [4], [1,000],
+      [5], [1,000],
+      table.hline(),
+    ),
+    caption: [Concordância entre a reconstrução pelas primeiras $n-k$ fusões e o corte por `fcluster` no Centroid Linkage.],
+    kind: table,
+  ) <tab:hier-cut>
 
-  Considerando as partições efetivamente distintas, a silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,580), enquanto o ARI permanece máximo em $k = 3$ (0,562). A silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI reconhece a dificuldade de separar _versicolor_ e _virginica_. Por fim, como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada.
+  Para $k = 4$, a silhueta é 0,406 e o ARI é 0,552. Neste corte, uma observação de _setosa_ se separa das outras 49, enquanto as espécies _versicolor_ e _virginica_ também permanecem divididas em grupos mistos. Para $k = 5$, são obtidos silhueta 0,374 e ARI 0,551.
+
+  A silhueta decresce com o número de grupos e é máxima em $k = 2$ (0,580). O ARI também é máximo em $k = 2$ (0,568), seguido de $k = 3$ (0,562). Assim, a silhueta favorece a separação geométrica entre _setosa_ e as demais espécies, enquanto o ARI confirma que dividir novamente essa região não melhora o acordo externo. Como o procedimento não é iterativo nem aleatório, não há variabilidade entre execuções a ser avaliada; não foram realizados bootstrap ou intervalos de incerteza.
 
   == DBSCAN
 
@@ -350,29 +355,35 @@
 
   #figure(
     table(
-      columns: 6,
+      columns: 7,
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*`eps`*], [*`minpts`*], [*Grupos*], [*Ruído*], [*Silhouette*], [*ARI*]),
+      table.header([*`eps`*], [*`minpts`*], [*Grupos*], [*Ruído*], [*Cobertura*], [*Silhouette*], [*ARI*]),
       table.hline(),
-      [0,3], [7], [2], [128 (85,3%)], [0,634], [0,000],
-      [0,4], [3], [10], [39 (26,0%)], [0,418], [0,621],
-      [0,5], [15], [1], [127 (84,7%)], [--], [--],
-      [0,6], [5], [2], [26 (17,3%)], [0,641], [0,611],
-      [1,0], [5], [2], [3 (2,0%)], [0,594], [0,568],
+      [0,3], [7], [2], [128 (85,3%)], [14,7%], [0,634], [0,000],
+      [0,4], [3], [10], [39 (26,0%)], [74,0%], [0,418], [0,621],
+      [0,5], [10], [3], [89 (59,3%)], [40,7%], [0,710], [1,000],
+      [0,5], [15], [1], [127 (84,7%)], [15,3%], [--], [--],
+      [0,6], [5], [2], [26 (17,3%)], [82,7%], [0,641], [0,611],
+      [0,7], [5], [2], [8 (5,3%)], [94,7%], [0,610], [0,573],
+      [1,0], [5], [2], [3 (2,0%)], [98,0%], [0,594], [0,568],
+      [1,0], [10], [2], [4 (2,7%)], [97,3%], [0,598], [0,571],
+      [1,0], [15], [2], [6 (4,0%)], [96,0%], [0,602], [0,568],
       table.hline(),
     ),
     caption: [Configurações representativas. Silhueta e ARI calculados sem as observações de ruído.],
     kind: table,
   ) <tab:dbscan>
 
+  A configuração `eps` = 0,5 e `minpts` = 10 alcança silhueta 0,710 e ARI 1,0, mas descarta 89 observações: a cobertura é de apenas 40,7% e as métricas são calculadas sobre 61 das 150 observações. Por isso, esse extremo não representa uma melhoria equivalente da segmentação da base completa e não deve ser escolhido pela silhueta sem considerar a cobertura. Já em `eps` = 1,0, as configurações com `minpts` = 5, 10 e 15 preservam entre 144 e 147 observações, mas fundem a fronteira entre _versicolor_ e _virginica_ e produzem ARI próximo a 0,568.
+
   #figure(
     image("../imagens/dbscan_clusters.png", width: 100%),
     caption: [DBSCAN com `eps` = 0,7 e `minpts` = 5, projetado em `sepal_length` e `sepal_width`. O rótulo −1 indica ruído.],
   ) <fig:dbscan-clusters>
 
-  Com `eps` = 0,4 e `minpts` = 3, o DBSCAN forma dez agrupamentos e descarta 39 observações (26,0%), obtendo silhueta 0,418 e ARI 0,621. A @tab:dbscan-cont apresenta a contingência dessa configuração normalizada com as espécies reais. A @fig:dbscan-petalas mostra essa fragmentação no plano das pétalas.
+  Com `eps` = 0,4 e `minpts` = 3, o DBSCAN forma dez agrupamentos e descarta 39 observações (26,0%), obtendo silhueta 0,418 e ARI 0,621. A @tab:dbscan-cont apresenta as contagens dessa contingência entre as espécies reais e os grupos encontrados. A @fig:dbscan-petalas mostra essa fragmentação no plano das pétalas.
 
   #figure(
     table(
@@ -430,7 +441,7 @@
   ) <tab:pca>
 
 
-  A @fig:pca-var mostra que as duas primeiras componentes reúnem 95,8% da variância: 72,8% na PC1 e 23% na PC2. Pelos coeficientes da @tab:pca-loadings, a PC1 #footnote[Um estudo à parte comprovou que a normalização é particularmente importante para o PCA, e o seu uso tornou os coeficientes mais balanceados.] combina principalmente `sepal_length`, `petal_length` e `petal_width`, e a PC2 é dominada por `sepal_width`.
+  A @fig:pca-var mostra que as duas primeiras componentes reúnem 95,8% da variância: 72,8% na PC1 e 23,0% na PC2. Pelos coeficientes da @tab:pca-loadings, a PC1 combina principalmente `sepal_length`, `petal_length` e `petal_width`; a PC2 é dominada por `sepal_width`. Como o sinal de um eixo pode ser invertido sem alterar a solução, a interpretação deve se concentrar nos pesos relativos. A padronização z-score evita que atributos com escalas numéricas maiores dominem a análise, mas não implica que tenham a mesma importância biológica.
 
   #figure(
     table(
@@ -460,11 +471,11 @@
     caption: [PCA: observações projetadas nas duas primeiras componentes principais, coloridas pela espécie real.],
   ) <fig:pca-scatter>
 
-  Na projeção (@fig:pca-scatter), a _setosa_ fica bem separada, enquanto _versicolor_ e _virginica_ ainda se sobrepõem. A silhueta interna é 0,613 para a partição de K-Means com $k = 2$, e resume a coesão e a separação desses grupos. Já a silhueta externa, calculada com as espécies reais, foi menos satisfatória, alcançando 0,400. Por outro lado, a trustworthiness com dez vizinhos é 0,978, indicando uma preservação forte da vizinhança local.
+  Na projeção (@fig:pca-scatter), a _setosa_ fica bem separada, enquanto _versicolor_ e _virginica_ ainda se sobrepõem. A silhueta interna é 0,613 para a partição de K-Means com $k = 2$ — a melhor entre os valores de $k$ testados — e resume a coesão e a separação desses grupos no plano. A silhueta externa, calculada com as espécies reais, é 0,400 e serve apenas como diagnóstico. A trustworthiness com dez vizinhos é 0,978: ela avalia se pontos próximos no plano também eram próximos no espaço original, penalizando vizinhos introduzidos pela projeção.
 
   == Kernel PCA
 
-  Também com o kernel RBF, comparamos cinco valores de $gamma$ (@tab:kpca-grid). Para cada um, a silhueta interna corresponde ao melhor K-Means entre $k = 2$ e $k = 5$ no plano 2D. A configuração selecionada foi $gamma = 0,05$, que apresentou a maior trustworthiness entre os valores testados, 0,976, muito próxima ao do PCA. Para essa configuração, o solver retornou 141 autovalores. A silhueta interna dessa projeção é 0,637 ($k = 2$) e a externa, 0,427. Já a maior silhueta interna do grid (0,667, com $k = 3$) ocorre em $gamma = 0,25$, mas possuía uma trustworthiness menor.
+  Com o kernel RBF, comparamos cinco valores de $gamma$ (@tab:kpca-grid). Para cada projeção, a silhueta interna é o melhor resultado de K-Means entre $k = 2$ e $k = 5$; a silhueta externa usa as espécies reais e é apenas diagnóstica. A configuração escolhida foi $gamma = 0,05$, que obteve a maior trustworthiness entre os valores testados (0,976). A maior silhueta interna, 0,667 ($k = 3$), ocorre em $gamma = 0,25$, mas não foi o critério de seleção. Para $gamma = 0,05$, o solver retornou 141 autovalores cuja soma (43,44297) coincide, dentro da precisão numérica, com o traço de $K_c$; essa soma é o denominador das proporções apresentadas na @tab:kpca.
 
   #figure(
     table(
@@ -480,11 +491,35 @@
       [4], [1,857], [0,043], [0,922],
       table.hline(),
     ),
-    caption: [Kernel PCA (RBF, $gamma = 0,05$): autovalores, proporções e acumulado],
+    caption: [Kernel PCA (RBF, $gamma = 0,05$): autovalores $eta$ de $K_c$; as proporções são $eta_i / sum_j eta_j$, com soma 43,44297.],
     kind: table,
   ) <tab:kpca>
 
-  A @tab:kpca-centroides resume as coordenadas médias das observações de cada espécie na projeção: _setosa_ (0,564; −0,075), _versicolor_ (−0,154; 0,176) e _virginica_ (−0,410; −0,101). Esses pontos, destacados na @fig:kpca-centroides, são os médios calculados após a projeção com os rótulos reais.
+  As duas primeiras componentes somam 82,2% da soma dos autovalores retornados, e as quatro primeiras, 92,2% (@tab:kpca). O espectro também tem uma cauda longa de autovalores pequenos. Essas proporções descrevem a distribuição dos autovalores da matriz de kernel centrada e não são diretamente comparáveis às da PCA linear, calculadas no espaço original.
+
+  #figure(
+    table(
+      columns: 5,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*$gamma$*], [*Sil. interna*], [*$k$*], [*Sil. externa*], [*Trustworthiness*]),
+      table.hline(),
+      [0,05], [0,637], [2], [0,427], [*0,976*],
+      [0,10], [0,647], [2], [0,447], [0,962],
+      [0,25], [0,667], [3], [0,468], [0,932],
+      [0,50], [0,649], [3], [0,456], [0,915],
+      [1,00], [0,583], [3], [0,417], [0,892],
+      table.hline(),
+    ),
+    caption: [Kernel PCA (RBF): grid sobre $gamma$; seleção pela maior trustworthiness, com silhueta interna como desempate.],
+    kind: table,
+  ) <tab:kpca-grid>
+
+  #figure(
+    image("../imagens/kpca_variance.png", width: 100%),
+    caption: [Kernel PCA (RBF, $gamma = 0,05$): proporção dos autovalores nas dez primeiras componentes e acumulado.],
+  ) <fig:kpca-var>
 
   #figure(
     table(
@@ -499,58 +534,32 @@
       [Virginica], [−0,410], [−0,101],
       table.hline(),
     ),
-    caption: [Kernel PCA: médias das coordenadas das observações de cada espécie nas duas primeiras componentes.],
+    caption: [Kernel PCA: médias das coordenadas projetadas por espécie nas duas primeiras componentes.],
     kind: table,
   ) <tab:kpca-centroides>
 
   #figure(
     image("../imagens/kpca_scatter_centroids.png", width: 100%),
-    caption: [Kernel PCA ($gamma = 0,05$): projeção das observações e centróides das espécies.],
+    caption: [Kernel PCA ($gamma = 0,05$): projeção e médias das coordenadas por espécie.],
   ) <fig:kpca-centroides>
 
-  As duas primeiras componentes do Kernel PCA somam 82,2% da soma dos autovalores retornados, e as quatro primeiras, 92,2% (@tab:kpca). O espectro também apresenta uma cauda longa de autovalores pequenos (@fig:kpca-var, @fig:kpca-var-log).
+  As médias das coordenadas projetadas por espécie são _setosa_ (0,564; −0,075), _versicolor_ (−0,154; 0,176) e _virginica_ (−0,410; −0,101). Foram calculadas após o ajuste, usando os rótulos reais, e não participam do modelo. O Kernel PCA foi aplicado às observações padronizadas, não a protótipos.
 
-  #figure(
-    table(
-      columns: 5,
-      align: center,
-      stroke: none,
-      table.hline(),
-      table.header([*$gamma$*], [*Sil. interna*], [*$k$*], [*Sil. externa*], [*Trustworthiness*]),
-      table.hline(),
-      [0,05], [0,637], [2], [0,427], [*0,976*],
-      [0,10], [0,647], [2], [0,447], [0,962],
-      [0,25], [*0,667*], [3], [0,468], [0,932],
-      [0,50], [0,649], [3], [0,456], [0,915],
-      [1,00], [0,583], [3], [0,417], [0,892],
-      table.hline(),
-    ),
-    caption: [Kernel PCA (RBF): grid sobre $gamma$; seleção pela maior trustworthiness. O $k$ informado é o do K-Means no plano 2D e serve apenas como descrição.],
-    kind: table,
-  ) <tab:kpca-grid>
-
-  #figure(
-    image("../imagens/kpca_variance.png", width: 100%),
-    caption: [Kernel PCA (RBF, $gamma = 0,05$): proporção dos autovalores nas dez primeiras componentes e acumulado.],
-  ) <fig:kpca-var>
-
-  Como a cauda é longa, @fig:kpca-var-log repete os autovalores em escala logarítmica. Nela fica mais fácil ver que, depois das duas primeiras componentes, os valores decaem sem um novo salto.
-
-  #figure(
-    image("../imagens/kpca_scree_log.png", width: 100%),
-    caption: [Kernel PCA ($gamma = 0,05$): todos os autovalores em escala logarítmica.],
-  ) <fig:kpca-var-log>
+  Na projeção (@fig:kpca-scatter), a _setosa_ permanece separada, enquanto _versicolor_ e _virginica_ se sobrepõem, como na PCA linear. A trustworthiness de 0,976 em $gamma = 0,05$ é próxima à da PCA (0,978); a diferença de 0,002 descreve apenas estes embeddings, não uma superioridade geral de uma técnica. No grid, a trustworthiness diminui até 0,892 quando $gamma$ aumenta para 1,0, embora a silhueta interna não siga a mesma tendência. A escolha de $gamma$ privilegiou a preservação local, e as silhuetas ficam como medidas complementares.
 
   #figure(
     image("../imagens/kpca_scatter.png", width: 100%),
-    caption: [Kernel PCA (RBF, $gamma = 0,05$, configuração selecionada): observações projetadas nas duas primeiras componentes, coloridas pela espécie real.],
+    caption: [Kernel PCA (RBF, $gamma = 0,05$): observações projetadas nas duas primeiras componentes, coloridas pela espécie real.],
   ) <fig:kpca-scatter>
 
-  Na projeção (@fig:kpca-scatter), a _setosa_ permanece separada das demais espécies, com sobreposição entre _versicolor_ e _virginica_ semelhante à do PCA linear. Na configuração escolhida, a trustworthiness com dez vizinhos é 0,976: abaixo dos 0,978 da PCA linear, como era esperado para uma projeção não linear, mas acima dos 0,932 de $gamma = 0,25$. As silhuetas dessa configuração são 0,637 ($k = 2$, interna) e 0,427 (externa) e ficam apenas como descrição. O grid mostra que a trustworthiness cai de 0,976 em $gamma = 0,05$ para 0,892 em $gamma = 1,0$: quanto mais estreito o kernel, mais a projeção distorce vizinhanças, mesmo quando a silhueta interna sobe. Por isso o critério adotado foi fidelidade de vizinhança, e não compactação do plano.
+  #figure(
+    image("../imagens/kpca_scree_log.png", width: 100%),
+    caption: [Kernel PCA ($gamma = 0,05$): autovalores em escala logarítmica.],
+  ) <fig:kpca-var-log>
 
   == t-SNE
 
-  Foram avaliadas as perplexidades 5, 10, 20 e 30, com inicialização por PCA, taxa de aprendizado automática, limite de 1000 iterações e semente 42. Todas as execuções registraram 999 iterações. A @tab:tsne resume a silhueta não supervisionada, obtida por K-Means no embedding, a silhueta externa pelas espécies reais, a divergência de Kullback-Leibler (KL) e a trustworthiness com dez vizinhos.
+  Foram avaliadas as perplexidades 5, 10, 20 e 30, com inicialização por PCA, taxa de aprendizado automática, limite de 1000 iterações e semente 42. Todas as execuções atingiram o limite de 1000 iterações e registraram $n_"iter" = 999$, portanto este resultado não demonstra convergência formal. A @tab:tsne resume a silhueta não supervisionada, obtida por K-Means no embedding, a silhueta externa pelas espécies reais, a divergência de Kullback-Leibler (KL) e a trustworthiness com dez vizinhos.
 
   #figure(
     table(
@@ -570,17 +579,17 @@
       table.hline(),
       [5], [0,588], [5], [0,267], [0,330], [999], [0,981],
       [10], [0,664], [2], [0,455], [0,309], [999], [0,985],
-      [20], [0,819], [2], [0,508], [0,195], [999], [0,990],
-      [30], [*0,865*], [2], [0,483], [0,164], [999], [0,989],
+      [20], [0,819], [2], [0,508], [0,195], [999], [*0,990*],
+      [30], [0,865], [2], [0,483], [0,164], [999], [0,989],
       table.hline(),
     ),
-    caption: [t-SNE: silhueta não supervisionada por K-Means e avaliação externa pelas espécies reais.],
+    caption: [t-SNE: trustworthiness, silhueta não supervisionada por K-Means e avaliação externa pelas espécies reais.],
     kind: table,
   ) <tab:tsne>
 
-  A silhueta não supervisionada cresce com a perplexidade, selecionando perplexidade 30, resultando em 0,865. A silhueta externa pelas espécies reais é apresentada apenas como referência e não participa da seleção. A divergência KL foi usada como informação complementar.
+  Pela versão atual, a perplexidade é selecionada pela maior trustworthiness, usando a silhueta interna apenas como desempate. Assim, a perplexidade selecionada é 20, com trustworthiness 0,990, silhueta não supervisionada 0,819 e silhueta externa 0,508. Pela seleção anterior pela silhueta, perplexidade 30 tinha silhueta 0,865 e trustworthiness 0,989. A silhueta externa pelas espécies reais e a divergência KL são apresentadas como medidas complementares.
 
-  Na análise de estabilidade da perplexidade 30, as sementes de 0 a 9 produziram silhueta não supervisionada média de 0,865 e trustworthiness média de 0,989, ambas sem variação observável. A silhueta externa média foi 0,483. Esses resultados indicam estabilidade das métricas nesse conjunto de execuções, mas não avaliam a robustez em novas amostras ou configurações.
+  Na análise das sementes de 0 a 9 na perplexidade selecionada, 20, a silhueta não supervisionada média foi 0,819 e a trustworthiness média foi 0,990, ambas sem variação observável. A silhueta externa média foi 0,508. Como a inicialização foi fixada em PCA, esse desvio zero não constitui evidência de estabilidade robusta sob inicializações aleatórias ou em novas amostras.
 
   #figure(
     image("../imagens/tsne_perplexity_comparison.png", width: 100%),
@@ -594,7 +603,25 @@
     caption: [t-SNE: embeddings bidimensionais para as perplexidades 5, 10, 20 e 30, coloridos pela espécie real.],
   ) <fig:tsne-emb>
 
-  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta mede a separação das espécies reais no plano e não a qualidade de um agrupamento, por isso não é comparável às silhuetas dos métodos de agrupamento. Já a trustworthiness mede a preservação dos dez vizinhos mais próximos e é uma métrica complementar.
+  O t-SNE preserva principalmente relações de vizinhança, de modo que distâncias e tamanhos dos grupos no embedding não refletem diretamente o espaço original. A silhueta não supervisionada mede o particionamento produzido pelo K-Means no plano; ela não deve ser interpretada diretamente como separação das espécies reais. A silhueta externa pelas espécies reais é apresentada como avaliação complementar, assim como a trustworthiness, que mede a preservação dos dez vizinhos mais próximos.
+
+  #figure(
+    table(
+      columns: 5,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*Método*], [*Critério anterior*], [*Resultado anterior*], [*Critério atual*], [*Resultado atual*]),
+      table.hline(),
+      [PCA], [Configuração única], [Sil. 0,613; trust. 0,978], [Sem seleção de parâmetros], [Sil. 0,613; trust. 0,978],
+      [Kernel PCA], [Maior silhueta], [$gamma = 0,25$; sil. 0,667; trust. 0,932], [Maior trustworthiness], [$gamma = 0,05$; sil. 0,637; trust. 0,976],
+      [t-SNE], [Maior silhueta], [Perp. 30; sil. 0,865; trust. 0,989], [Maior trustworthiness], [Perp. 20; sil. 0,819; trust. 0,990],
+      [UMAP], [Maior silhueta], [30/0,0; sil. 0,902; trust. 0,978], [Maior trustworthiness], [15/0,5; sil. 0,863; trust. 0,980],
+      table.hline(),
+    ),
+    caption: [Comparação dos critérios de seleção dos métodos com hiperparâmetros; a PCA tem uma única configuração.],
+    kind: table,
+  ) <tab:embedding-selection-comparison>
 
   == UMAP
 
@@ -618,9 +645,11 @@
     kind: table,
   ) <tab:umap>
 
-  A silhueta não supervisionada variou entre 0,597 (`n_neighbors` = 5 e `min_dist` = 0,5) e 0,902 (`n_neighbors` = 30 e `min_dist` = 0,0), conforme a @fig:umap-sil. A trustworthiness com dez vizinhos variou entre 0,971 e 0,980.
+  A silhueta não supervisionada variou entre 0,597 (`n_neighbors` = 5 e `min_dist` = 0,5) e 0,902 (`n_neighbors` = 30 e `min_dist` = 0,0), conforme a @fig:umap-sil. A trustworthiness com dez vizinhos variou entre 0,971 e 0,980. A silhueta mede principalmente a formação de grupos compactos no embedding pelo K-Means e não deve ser interpretada isoladamente como preservação geométrica ou separação biológica verdadeira.
 
-  A @tab:umap-sementes resume a estabilidade das quatro melhores configurações pela silhueta não supervisionada obtida com a semente 42, avaliadas em dez sementes.
+  Para a seleção, usamos a trustworthiness como critério principal e a silhueta apenas como apoio. A maior trustworthiness no grid (0,9801) ocorreu com `n_neighbors` = 15 e `min_dist` = 0,5; a silhueta dessa configuração foi 0,8632.
+
+  A @tab:umap-sementes resume as configurações com maior trustworthiness e silhueta secundária, avaliadas em dez sementes.
 
   #figure(
     table(
@@ -632,17 +661,17 @@
         [*`n_neighbors`*], [*`min_dist`*], [*Silhueta média*], [*DP silhueta*], [*Trustworthiness média (DP)*]
       ),
       table.hline(),
-      [30], [0,0], [0,893], [0,025], [0,977 (0,002)],
-      [30], [0,1], [0,876], [0,023], [0,977 (0,002)],
-      [15], [0,0], [0,854], [0,023], [0,975 (0,002)],
       [15], [0,5], [0,781], [0,051], [0,979 (0,001)],
+      [10], [0,5], [0,756], [0,070], [0,979 (0,001)],
+      [30], [0,5], [0,813], [0,034], [0,978 (0,002)],
+      [15], [0,1], [0,846], [0,024], [0,977 (0,002)],
       table.hline(),
     ),
-    caption: [Estabilidade das quatro melhores configurações em dez sementes (0 a 9). Os desvios são padrões amostrais.],
+    caption: [Estabilidade das quatro melhores configurações pela trustworthiness, em dez sementes (0 a 9). Os desvios são padrões amostrais.],
     kind: table,
   ) <tab:umap-sementes>
 
-  Entre essas configurações, `n_neighbors` = 30 e `min_dist` = 0,0 obteve a maior silhueta não supervisionada média (0,893 ± 0,025). A trustworthiness média ficou entre 0,975 e 0,979. Os resultados indicam estabilidade satisfatória dessa configuração selecionada sem utilização dos rótulos reais.
+  As diferenças entre essas configurações são comparáveis aos desvios de silhueta observados, especialmente entre os rankings próximos de trustworthiness. Assim, o ranking não é totalmente distinguível: `n_neighbors` = 15 e `min_dist` = 0,5 obteve a maior média de trustworthiness (0,9792), enquanto as demais oscilaram perto de 0,977–0,979. Os resultados indicam apenas consistência parcial, não estabilidade estatística plenamente separada.
 
   #figure(
     image("../imagens/umap_parameter_comparison.png", width: 100%),
