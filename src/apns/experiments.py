@@ -1058,11 +1058,20 @@ def export_tsne_results(
     results = pd.DataFrame(result_rows)
     _save_table(results, tables_dir, "tsne_metrics.csv")
 
+    selected_perplexity = (
+        results.dropna(subset=["trustworthiness"])
+        .sort_values(
+            ["trustworthiness", "silhouette"],
+            ascending=[False, False],
+        )
+        .iloc[0]["perplexity"]
+    )
+
     seed_rows = []
     for seed in seed_values:
         model, embedding = _fit_tsne(
             x=x,
-            perplexity=30.0,
+            perplexity=float(selected_perplexity),
             max_iter=max_iter,
             random_state=seed,
         )
@@ -1070,7 +1079,7 @@ def export_tsne_results(
         seed_rows.append(
             {
                 "model_name": tsne.TSNE.__name__,
-                "perplexity": 30.0,
+                "perplexity": float(selected_perplexity),
                 "max_iter": max_iter,
                 "random_state": seed,
                 "silhouette": silhouette,
@@ -1091,7 +1100,7 @@ def export_tsne_results(
     seed_summary = pd.DataFrame(
         [
             {
-                "perplexity": 30.0,
+                "perplexity": float(selected_perplexity),
                 "n_seeds": len(seed_results),
                 "n_neighbors_trustworthiness": trustworthiness_n_neighbors,
                 "silhouette_mean": seed_results["silhouette"].mean(),
@@ -1123,7 +1132,14 @@ def export_tsne_results(
         figures_dir / "tsne_perplexity_comparison.png",
     )
 
-    best_result = _select_best_row(results, metric="silhouette")
+    best_result = (
+        results.dropna(subset=["trustworthiness"])
+        .sort_values(
+            ["trustworthiness", "silhouette"],
+            ascending=[False, False],
+        )
+        .iloc[0]
+    )
     embedding = embeddings[float(best_result["perplexity"])]
     figure = plot_tsne_embedding(
         embedding,
@@ -1305,7 +1321,7 @@ def export_umap_results(
         )
 
     seed_summary = pd.DataFrame(seed_summary_rows).sort_values(
-        ["silhouette_mean", "trustworthiness_mean"],
+        ["trustworthiness_mean", "silhouette_mean"],
         ascending=False,
     )
     _save_table(seed_summary, tables_dir, "umap_seed_summary.csv")

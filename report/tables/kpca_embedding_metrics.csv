@@ -1,2 +1,2 @@
 model_name,kernel,gamma,n_neighbors,silhouette,cluster_k,external_silhouette,trustworthiness
-Kernel PCA,rbf,0.25,10,0.6674936677483483,3,0.4682031164424442,0.9322527881040892
+Kernel PCA,rbf,0.05,10,0.6370124375580273,2,0.42743868243816263,0.9760297397769516
