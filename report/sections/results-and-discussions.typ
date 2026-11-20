@@ -206,7 +206,7 @@
     kind: table,
   ) <tab:em>
 
-   O efeito da covariância cresce com $k$: em $k = 2$ todas as formas recuperaram a mesma partição, diferindo só na complexidade e BIC, e em $k = 3$ as formas flexíveis capturaram a fronteira _versicolor_/_virginica_ (ARI 0,904 com `full`/`tied`), mas `spherical`teve uma perda considerável no ARI. Em ambos os casos, o `full` foi escolhido pelo BIC, mas em $k >= 4$ perdeu silhueta e o `tied` foi escolhido pelo BIC. 
+   O efeito da covariância cresce com $k$: em $k = 2$ todas as formas recuperaram a mesma partição, diferindo apenas na complexidade e no BIC, e em $k = 3$ as formas flexíveis capturaram melhor a fronteira _versicolor_/_virginica_ (ARI 0,904 com `full`/`tied`), enquanto a forma `spherical` apresentou perda considerável no ARI. Em ambos os casos, o `full` foi escolhido pelo BIC, mas em $k >= 4$ perdeu silhueta e o `tied` foi escolhido pelo BIC.
    
    A silhueta das configurações selecionadas decresce de 0,580 em $k = 2$ para 0,300 em $k = 5$ (@fig:em-sil), um pouco mais rapidamente que em outros métodos, de modo que $k^* = 2$, com silhueta 0,580 e ARI 0,568. A partição crisp deste $k$ isola as 50 _setosa_ em um agrupamento, e as 100 observações de _versicolor_ e _virginica_ no outro, idêntica à do K-Means padronizado.
 
@@ -215,9 +215,8 @@
     caption: [Silhouette em função do número de clusters $k$ (misturas gaussianas com EM).],
   ) <fig:em-sil>
 
-
-
-  Além disso, foi observada uma mudança positiva na estabilidade do algoritmo com o uso da inicialização por K-Means ao invés da aleatória. No entanto, o ganho principal da Mistura Gaussiana está em $k = 3$, que, apesar da silhueta modesta, teve o ARI  0,904, o melhor entre os observados no estudo, com apenas 5 das 150 observações fora do grupo majoritário, obtendo partições bem isoladas entre as espécies, particularmente devido à melhor captura da fronteira _versicolor_/_virginica_.
+  O ganho principal da Mistura Gaussiana está em $k = 3$: apesar da silhueta modesta, a partição obteve ARI 0,904, o melhor valor observado no estudo, e apresentou melhor recuperação da fronteira entre _versicolor_ e _virginica_. Esse resultado é apresentado como avaliação externa da configuração com melhor ajuste BIC para $k = 3$, não como critério de seleção de $k^*$.
+  
   //TODO urgente: fazer o codigo pra produzir a tabela de pertencimento a partição nesse k = 3.
 
   //TODO ADicioanr plot mostrando como ficou bem dividido aqui?
