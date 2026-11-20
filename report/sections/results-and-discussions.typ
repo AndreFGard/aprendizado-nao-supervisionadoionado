@@ -211,25 +211,28 @@
       [5], [`tied`], [0,300], [0,727], [326,7], [823,8],
       table.hline(),
     ),
-    caption: [Misturas gaussianas com EM: por $k$, tipo de covariância de menor BIC, $-$log-verossimilhança mínima entre sementes para o tipo selecionado, ARI],
+    caption: [Misturas gaussianas com EM: por $k$, tipo de covariância de menor BIC, $-$log-verossimilhança mínima, ARI],
     kind: table,
   ) <tab:em>
 
-   O efeito da covariância cresce com $k$: em $k = 2$ todas as formas recuperaram a mesma partição, diferindo só na complexidade e BIC, e em $k = 3$ as formas flexíveis capturaram a fronteira _versicolor_/_virginica_ (ARI 0,904 com `full`/`tied`), mas `spherical`teve uma perda considerável no ARI. Em ambos os casos, o `full` foi escolhido pelo BIC, mas em $k >= 4$ perdeu silhueta e o `tied` foi escolhido pelo BIC. 
-   
-   A silhueta das configurações selecionadas decresce de 0,580 em $k = 2$ para 0,300 em $k = 5$ (@fig:em-sil), um pouco mais rapidamente que em outros métodos, de modo que $k^* = 2$, com silhueta 0,580 e ARI 0,568. A partição crisp deste $k$ isola as 50 _setosa_ em um agrupamento, e as 100 observações de _versicolor_ e _virginica_ no outro, idêntica à do K-Means padronizado.
+  A silhueta das configurações selecionadas decresce de 0,580 em $k = 2$ para 0,300 em $k = 5$ (@fig:em-sil), de modo que $k^* = 2$, como nos demais métodos. Nesse valor, a partição _crisp_ isola as 50 _setosa_ em um grupo e reúne as 100 observações de _versicolor_ e _virginica_ no outro, que é a mesma partição obtida pelo K-Means padronizado. Em $k = 2$, todas as execuções produzem essa mesma partição, diferindo apenas no número de parâmetros e, portanto, no BIC.
 
   #figure(
     image("../imagens/em_silhouette.png", width: 100%),
     caption: [Silhouette em função do número de clusters $k$ (misturas gaussianas com EM).],
   ) <fig:em-sil>
 
+  O tipo de covariância, escolhido por BIC, não foi decidido por diferença marginal: as diferenças de BIC para o segundo colocado são de 112,7 em $k = 2$, 51,1 em $k = 3$, 8,8 em $k = 4$ e 19,6 em $k = 5$, todas acima de 6, o limiar de evidência forte usualmente adotado para diferenças de BIC; a tabela `em_bic_decomposition.csv` traz essa decomposição, $"BIC" = 2(-"log" L) + p log n$. Além disso, o BIC mínimo entre os quatro valores de $k$ também ocorre em $k = 2$ (797,7), o que corrobora o $k^*$ escolhido pela silhueta.
 
+  Destaca-se, principalmente, o ARI $k = 3$, que alcança 0,904, contra 0,568 em $k^*$, o maior ARI observado no estudo sem descartar pontos como ruído. No entanto, a queda da silhueta, que é calculada sem rótulos, para 0,373, foi o que impediu a escolha desse $k$, e esse resultado foi o mais frequente para as execuções com esse $k$.
 
-  Além disso, foi observada uma mudança positiva na estabilidade do algoritmo com o uso da inicialização por K-Means ao invés da aleatória. No entanto, o ganho principal da Mistura Gaussiana está em $k = 3$, que, apesar da silhueta modesta, teve o ARI  0,904, o melhor entre os observados no estudo, com apenas 5 das 150 observações fora do grupo majoritário, obtendo partições bem isoladas entre as espécies, particularmente devido à melhor captura da fronteira _versicolor_/_virginica_.
-  //TODO urgente: fazer o codigo pra produzir a tabela de pertencimento a partição nesse k = 3.
+  Ainda para $k = 3$, apenas 5 das 150 observações (3,3%), todas de _versicolor_, ficaram fora do seu grupo majoritário, sendo isoladas as 50 _setosa_ e _versicolor_ majoritariamente separadas das _virginica_, com as 5 _versicolor_ alocadas no grupo majoritariamente _virginica_, conforme vê-se em @fig:em-clusters. 
 
-  //TODO ADicioanr plot mostrando como ficou bem dividido aqui?
+  #figure(
+    image("../imagens/em_clusters.png", width: 100%),
+    caption: [EM no plano `petal_length` × `petal_width` (z-score): à esquerda, o $k = 2$ escolhido pela silhueta; à direita, o $k = 3$ que mais se aproxima das espécies. A legenda diz de que é cada grupo.],
+  ) <fig:em-clusters>
+
 
   == Agrupamento hierárquico Centroid Linkage
 
