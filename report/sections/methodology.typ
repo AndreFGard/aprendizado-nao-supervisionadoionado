@@ -10,15 +10,15 @@
   Cada algoritmo foi executado com seus parâmetros específicos, e quando aplicável, foram avaliadas diferentes configurações por meio da variação dos parâmetros de interesse e de sementes aleatórias. A avaliação utilizou o Silhouette Score como métrica interna e o Adjusted Rand Index (ARI) como métrica externa. O Silhouette Score mede a separação dos grupos em relação à coesão interna, enquanto o ARI mede a concordância entre os agrupamentos e as espécies reais, corrigida pelo acordo esperado ao acaso. O cálculo dessas métricas seguiu as particularidades de cada algoritmo, incluindo o tratamento de observações classificadas como ruído.
 
   == K-Means
-  O K-Means é um método particional baseado em centróides, que são definidos como o ponto médio do agrupamento. Assim, a função objetivo da distância euclidiana ao quadrado (SSE, @eq:sse) é minimizada para garantir a similaridade intra-agrupamento e reduzir a inter-agrupamento @han_kamber_pei_2012.
+  O K-Means é um método particional baseado em centróides, que são definidos como o ponto médio do agrupamento. Assim, a função objetivo da distância euclidiana ao quadrado (SSE, @eq:sse) é minimizada @han_kamber_pei_2012, de forma que manter cada ponto perto do seu centróide reduz a dispersão intra-agrupamento e, portanto, aumenta a separação entre os centróides.
 
   $ "SSE" = sum_(j=1)^k sum_(x_i in C_j) norm(x_i - mu_j)^2 $ <eq:sse>
 
   Neste trabalho, o algoritmo foi implementado com a classe _KMeans_ do Scikit-learn @pedregosa2011scikit, utilizando a SSE e inicialização padrão da biblioteca, com as demais configurações seguindo as predefinições da classe.
 
-  Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um executado 10 vezes com sementes aleatórias distintas, usando o parâmetro $"n_init" = 1$ para permitir a análise do impacto da inicialização.
+  Na avaliação experimental, foram testados valores de $k$ entre 2 e 5, cada um executado 10 vezes com sementes aleatórias distintas, usando o parâmetro $"n_init" = 1$ para permitir a análise do impacto da inicialização.#footnote[A inicialização padrão é `k-means++` e assim foi mantida, mas um estudo mostrou que as melhores soluções por $k$, segundo os critérios, coincidem.]
 
-  Para cada execução, foram registrados o Silhouette Score, o ARI e o valor final da função objetivo. Para cada valor de $k$, foi selecionada a execução de menor função objetivo, e a configuração final foi escolhida pela maior silhueta entre estes. Assim, o modelo foi ajustado novamente com seus respectivos parâmetros e semente para gerar as visualizações do agrupamento, dos graus de pertinência e da convergência da função objetivo.
+  Para cada execução, foram registrados o Silhouette Score, o ARI e o valor final da função objetivo. Para cada valor de $k$, foi selecionada a execução de menor função objetivo, e a configuração final foi escolhida pela maior silhueta entre estes.
 
   == K-Medoids
 
@@ -30,16 +30,18 @@
 
   == Fuzzy K-Means
 
-  O Fuzzy K-Means é uma generalização do K-Means em que cada observação pertence a cada agrupamento $j$ segundo um grau de pertinência $u_(i j) in [0, 1]$, a soma dos quais é 1. Os protótipos continuam sendo centróides, mas calculados como médias ponderadas pelas pertinências. A função objetivo minimizada é:
+  O Fuzzy K-Means é uma generalização do K-Means em que cada observação pertence a cada agrupamento $j$ segundo um grau de pertinência $u_(i j) in [0, 1]$, a soma dos quais é 1. Os protótipos continuam sendo centróides, mas calculados como médias ponderadas pelas pertinências elevadas ao expoente de fuzzificação $m$, isto é, $u_(i j)^m$. A função objetivo minimizada é:
 
   $ J_"m" = sum_(i=1)^n sum_(j=1)^k u_(i j)^"m" ||x_i - c_j||^2, $
 
 
   Neste trabalho, o algoritmo foi implementado com a classe FCM @bezdek1981pattern, utilizando a inicialização padrão da classe e as demais configurações seguindo as predefinições. Para calcular o Silhouette Score e o ARI, cada observação foi associada ao agrupamento de maior pertinência, obtendo-se um particionamento _crisp_.
 
-  Na avaliação experimental, foram testados valores de $k$ entre 2 e 5 e $"m" in {1.5, 2.0, 2.5}$, cada combinação executada 10 vezes com sementes aleatórias distintas. Totalizando 120 execuções. O parâmetro $m$ controla o grau de fuzzificação, de forma que valores maiores distribuem mais as pertinências entre os grupos.
+  Na avaliação experimental, foram testados valores de $k$ entre 2 e 5 e $"m" in {1.5, 2.0, 2.5}$, cada combinação executada 10 vezes com sementes aleatórias distintas, somando 120 execuções.
 
   Para cada execução, foram registrados o Silhouette Score, o ARI e o valor final da função objetivo `J_m`. Entre execuções com o mesmo k e m, foi escolhida a melhor segundo a função objetivo. Como `J_m` não é comparável entre valores distintos de `m`, pois $u_(i j)^m$ muda a escala do objetivo, a configuração final `(k, m)` foi escolhido pela maior silhueta _interna_, calculada sobre a partição _crisp_. Assim, o procedimento é uma única busca sobre os doze pares `(k, m)`, em que para cada `k`, a curva `"Sil"(k)` mostra o melhor `m`, e o par final é o de maior silhueta, definindo `k^*`. A comparação com os demais algoritmos é feita pela tendência das curvas e pelo ARI, que foi calculado somente como avaliação posterior e não participou da seleção.
+  //TODO remover
+  // É valido destacar que, como a silhueta usa a partição crisp, ela tende a favorecer $m$ pequeno por construção, porque pertinências mais duras produzem grupos mais compactos nesse cálculo.
 
   == Kernel Fuzzy K-Means
 
@@ -78,7 +80,10 @@
 
   == Avaliação dos embeddings <sec:avaliacao-embeddings>
 
-  Para comparar os espaços obtidos em cada técnica 2D de forma comparável e relevante para o problema de separabilidade, a qualidade de cada embedding foi medida por uma silhueta interna obtida por um um K-Means ajustado no próprio plano, com  $k in {2, 3, 4, 5}$, guardando-se o maior valor e o $k$ correspondente. A silhueta com as espécies reais foi mantida somente como avaliação final, e a trustworthiness com dez vizinhos como medida complementar para avaliar a preservação das vizinhanças.
+  Para cada embedding 2D registramos três leituras distintas. A trustworthiness com dez vizinhos mede a preservação das vizinhanças do espaço original, a silhueta interna de um K-Means ajustado no próprio plano, com $k in {2, 3, 4, 5}$, e o $k$ que a produziu são informados nas tabelas apenas como indicativo da separabilidade observada no plano, e a silhueta com os rótulos fica restrita à avaliação posterior.
+  
+  //TODO
+  //Essa distinção importa porque a silhueta no plano depende de escala e densidade do embedding: em t-SNE, distâncias e tamanhos globais não têm significado direto, e em UMAP valores baixos de `min_dist` produzem ilhas compactas por construção. Portanto, a silhueta no plano não deve ser comparada entre técnicas diferentes nem usada como critério de hiperparâmetro quando a pergunta é fidelidade. As seções seguintes registram o critério efetivamente adotado em cada técnica.
 
   == PCA
 
@@ -86,7 +91,7 @@
 
   Neste trabalho, a classe `PCA` do Sklearn foi usada com as configurações predefinidas.
 
-  Foram registrados os autovalores e as proporções de variância explicada e acumulada, além dos vetores das componentes. A silhueta obtida como avaliação pelo K-Means é registrada para fins de comparação. Para a visualização, foram produzidos o gráfico de dispersão das observações nesse plano, colorido pela espécie real, e o gráfico de variância por componente.
+  Foram registrados os autovalores e as proporções de variância explicada e acumulada, além dos vetores das componentes. Como optamos por adotar o kernel _RBF_, devido à natureza dos dados, não foi necessário tunagem. Assim, registramos a trustworthiness como medida de fidelidade e a silhueta interna do K-Means 2D, com o $k$ correspondente, de forma complementar. Para a visualização, foram produzidos o gráfico de dispersão das observações nesse plano, colorido pela espécie real, e o gráfico de variância por componente.
 
   == Kernel PCA
 
@@ -95,7 +100,8 @@
 
   Neste trabalho, foi usada a classe KernelPCA do Scikit-learn com kernel RBF, com $gamma in {0.05, 0.1, 0.25, 0.5, 1.0}$#footnote[Pela relação da biblioteca, $gamma = 1/(2 sigma^2)$, os valores 0,25, 0,50 e 1,0 correspondem a $sigma^2 = 2,0$, $1,0$ e $0,5$ do Kernel Fuzzy K-Means, permitindo comparação direta, enquanto 0,05 e 0,10 estendem a busca para kernels mais largos.]. Os demais parâmetros seguiram os predefinidos.
 
-  Para cada $gamma$, foram registrados os autovalores, a proporção de cada um em relação à soma dos autovalores retornados e o acumulado, além das três métricas de @sec:avaliacao-embeddings. A configuração final foi a de maior silhueta interna obtida pelo K-Means, como descrito. Como no caso do PCA, foram produzidos o gráfico de dispersão das duas primeiras componentes e o gráfico da variância para os primeiros dez componentes da configuração.
+  Para cada $gamma$, foram registrados os autovalores $eta$ da matriz de kernel centrada, $K_c$, e a proporção de cada um em relação à soma dos autovalores retornados, além do acumulado e das três métricas descritas na seção sobre avaliação de embeddings. Na notação usual, $eta_i$ são os autovalores de $K_c$ e as variâncias no espaço de características são $lambda_i = eta_i / n$. A configuração final foi a de maior trustworthiness, seguindo o critério descrito na seção sobre avaliação de embeddings, restando a silhueta interna e o $k$ do K-Means 2D como métricas complementares. Como no caso do PCA, foram produzidos o gráfico de dispersão das duas primeiras componentes, o gráfico da variância para os primeiros dez componentes e um scree em escala logarítmica.
+  
   == t-SNE
 
   O t-SNE foi utilizado para representar os quatro atributos numéricos da base Iris em um espaço bidimensional, preservando principalmente relações de vizinhança. Para isso, converte as distâncias no espaço original em em probabilidades de afinidade e busca aproximar as distribuições de probabilidade de vizinhança nos espaços original e reduzido, utilizando uma distribuição t de Student no espaço de baixa dimensão.

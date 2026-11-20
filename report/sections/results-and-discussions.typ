@@ -1,5 +1,5 @@
 #let results-and-discussions = [
-  = Resultados e discussões
+  = Resultados e discussões <sec:results>
 
   == K-Means
 
@@ -30,8 +30,8 @@
     caption: [Silhouette em função do número de clusters $k$ (K-Means).],
   ) <fig:kmeans-sil>
 
-  //TODO Adicionar um scatter plot comparando k2 e k3.
-  A partição com $k^* = 2$ isola as 50 _setosa_ em um grupo e reúne as 100 observações de _versicolor_ e _virginica_ no outro. A silhueta reflete a separação da _setosa_, mas o ARI decorre da fusão entre _versicolor_ e _virginica_. A silhueta decresce de $k = 2$ até $k = 5$, enquanto o ARI é máximo em $k = 3$ (0,620), com silhueta de 0,459. A divergência entre os critérios é similar à observada no K-Medoids, em que a silhueta favorece 2 grupos, mas o ARI 3. Nessa partição de $k = 3$, a _setosa_ permanece isolada, mas  25 das 100 observações das outras espécies não pertencem ao respectivo grupo majoritário. Com $k = 4$ e $k = 5$, a _setosa_ passa a ser subdividida (27/23), acompanhada do decrescimento de ambas as métricas.
+
+  A partição com $k^* = 2$ separa as 50 _setosa_ e reúne as outras duas espécies em outro, explicando a silhueta alta e o ARI moderado. O ARI é máximo em $k = 3$ (0,620), quando 25 das 150 observações (16,7%), todas de _versicolor_/_virginica_, ficam fora do grupo majoritário. Assim, nota-se que a silhueta reduz conforme $k$ aumenta, e ARI também reduz após o seu máximo.
 
   == K-Medoids
 
@@ -110,9 +110,14 @@
   ) <fig:fkm-sil>
 
 
-  Entre as partições selecionadas para cada $k$, o ARI é máximo em $k = 3$ (0,620 com $m = 1,5$), com silhueta 0,459, enquanto a partição de $k^* = 2$ isola as 50 _setosa_ perfeitamente, como no K-Means. O máximo global de ARI no grid é 0,630 ($k = 3$, $m = 2,0$; não mostrado na tabela), mas esse par não maximiza a silhueta e não foi selecionado; o ARI é mostrado apenas como avaliação externa. Não houve variabilidade entre sementes em $k = 2$ e $k = 3$ para nenhum valor de $m$; em $k = 4$ e $k = 5$ houve mínimos locais, sobretudo em $k = 5$ com $m = 1,5$ (silhueta entre 0,339 e 0,395). Em $k = 3$, 25 das 150 observações (16,7%) ficam fora do grupo majoritário, e em $k = 4$ a _setosa_ passa a ser dividida (49/1), também em acordo com o K-Means.
+  Entre as partições selecionadas para cada $k$, o ARI é máximo em $k = 3$ (0,620 com $m = 1,5$), com silhueta 0,459, enquanto a partição de $k^* = 2$ isola as 50 _setosa_, como no K-Means. O máximo global de ARI no grid é 0,630 ($k = 3$, $m = 2,0$), mas esse par não maximiza a silhueta. Não houve variabilidade entre sementes em $k = 2$ e $k = 3$ para nenhum valor de $m$, mas em $k = 4$ e $k = 5$ apareceram mínimos locais. Em $k = 3$, 25 das 150 observações (16,7%) ficam fora do grupo majoritário, similarmente ao KMeans.
 
-  Além disso, embora a fuzzificação suavize as fronteiras, uma vez feito _crisp_, o particionamento para $k^*$ do Fuzzy K-Means foi idêntico ao do K-Means, e as métricas se mantêm muito próximas para $k > 2$. A diferença entre $m = 1,5$ e $m = 2,0$ é pequena (por exemplo, 0,459 contra 0,457 em $k = 3$), indicando baixa sensibilidade a $m$ neste conjunto.
+  Nesse sentido, destaca-se a semelhança com o K-Means também em $k^* = 2$, cuja partição crisp é idêntica à do K-Means para os três valores de $m$. A matriz de pertinências, porém, muda. Entre $m = 1,5$ e $m = 2,5$ a diferença em norma de Frobenius é 2,80, com variação máxima de 0,26 em uma observação: a suavização existe, mas desaparece quando arredondamos para um único grupo. A @fig:fkm-pert mostra os dois extremos na mesma ordenação por espécie (painéis empilhados), evidenciando pertinências mais difusas em $m = 2,5$ sem nenhuma troca de grupo. A diferença de silhueta entre $m = 1,5$ e $m = 2,0$ em $k = 3$ é de só 0,002 (0,459 contra 0,457), mas isso é uma comparação isolada. O apêndice reúne os doze pares $(k, m)$ e índices fuzzy próprios; como a silhueta é calculada sobre rótulos crisp, ela premia $m$ pequeno por construção, e PC, PE e Xie–Beni entram como contraponto, não como nova regra de escolha.
+
+  #figure(
+    image("../imagens/fuzzy_memberships.png", width: 100%),
+    caption: [Fuzzy K-Means em $k = 2$: pertinências para $m = 1,5$ (selecionado, acima) e $m = 2,5$ (abaixo), na mesma ordenação por espécie. As partições crisp coincidem; a diferença entre as matrizes ($norm(Delta U)_F = 2,80$, máx. $0,26$) mede a suavização sem troca de grupo.],
+  ) <fig:fkm-pert>
 
 
   == Kernel Fuzzy K-Means
@@ -222,16 +227,56 @@
     caption: [Silhouette em função do número de clusters $k$ (misturas gaussianas com EM).],
   ) <fig:em-sil>
 
-  O tipo de covariância, escolhido por BIC, não foi decidido por diferença marginal: as diferenças de BIC para o segundo colocado são de 112,7 em $k = 2$, 51,1 em $k = 3$, 8,8 em $k = 4$ e 19,6 em $k = 5$, todas acima de 6, o limiar de evidência forte usualmente adotado para diferenças de BIC; a tabela `em_bic_decomposition.csv` traz essa decomposição, $"BIC" = 2(-"log" L) + p log n$. Além disso, o BIC mínimo entre os quatro valores de $k$ também ocorre em $k = 2$ (797,7), o que corrobora o $k^*$ escolhido pela silhueta.
-
-  Destaca-se, principalmente, o ARI $k = 3$, que alcança 0,904, contra 0,568 em $k^*$, o maior ARI observado no estudo sem descartar pontos como ruído. No entanto, a queda da silhueta, que é calculada sem rótulos, para 0,373, foi o que impediu a escolha desse $k$, e esse resultado foi o mais frequente para as execuções com esse $k$.
-
-  Ainda para $k = 3$, apenas 5 das 150 observações (3,3%), todas de _versicolor_, ficaram fora do seu grupo majoritário, sendo isoladas as 50 _setosa_ e _versicolor_ majoritariamente separadas das _virginica_, com as 5 _versicolor_ alocadas no grupo majoritariamente _virginica_, conforme vê-se em @fig:em-clusters. 
+  O tipo de covariância, escolhido por BIC, não foi decidido por diferença marginal. A @tab:em-bic mostra o grid completo: em $k = 3$, `full` fica com 804,5, contra 855,7 de `tied`, 968,2 de `diag` e 1231,7 de `spherical`; a folga sobre o segundo colocado é 51,1. Em $k = 2$, 4 e 5 as folgas são 112,7, 8,8 e 19,6 — todas acima de 6, limiar usual de evidência forte @kass1995bayes. O menor BIC global ocorre em $k = 2$ (797,7), apontando na mesma direção da silhueta; `em_bic_decomposition.csv` registra como penalidade e verossimilhança se combinam em cada valor.
 
   #figure(
-    image("../imagens/em_clusters.png", width: 100%),
-    caption: [EM no plano `petal_length` × `petal_width` (z-score): à esquerda, o $k = 2$ escolhido pela silhueta; à direita, o $k = 3$ que mais se aproxima das espécies. A legenda diz de que é cada grupo.],
-  ) <fig:em-clusters>
+    table(
+      columns: 6,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*$k$*], [*Spherical*], [*Diag*], [*Tied*], [*Full*], [*Folga p/ 2º*]),
+      table.hline(),
+      [2], [1334,7], [1081,7], [910,4], [*797,7*], [112,7],
+      [3], [1231,7], [968,2], [855,7], [*804,5*], [51,1],
+      [4], [1147,9], [929,3], [*839,9*], [848,7], [8,8],
+      [5], [1111,4], [925,0], [*823,8*], [843,4], [19,6],
+      table.hline(),
+    ),
+    caption: [EM: BIC por tipo de covariância e número de componentes. Em negrito, a menor estratégia de cada $k$; a última coluna é a diferença para a segunda melhor.],
+    kind: table,
+  ) <tab:em-bic>
+
+  Como diagnóstico externo, vale registrar que o ARI em $k = 3$ sobe para 0,904, contra 0,568 em $k^* = 2$; a silhueta desse modelo cai para 0,373, e é por isso que ele não foi escolhido.
+
+  As cinco observações que saem do grupo majoritário em $k = 3$ são _versicolor_ alocadas junto às _virginica_. A @tab:em-k3-cont e `em_k3_contingency.csv` trazem as contagens, e a @fig:em-clusters-k3 mostra a partição no plano das pétalas. O mapa de posteriores (@fig:em-post) reforça a leitura: a entropia média é 0,032, a probabilidade máxima mínima é 0,635 e nenhuma observação fica abaixo de 0,6. A incerteza existe, mas é localizada nos pontos de fronteira.
+
+  #figure(
+    table(
+      columns: 4,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*Espécie*], [*G0*], [*G1*], [*G2*]),
+      table.hline(),
+      [Setosa], [0], [50], [0],
+      [Versicolor], [45], [0], [5],
+      [Virginica], [0], [0], [50],
+      table.hline(),
+    ),
+    caption: [EM em $k = 3$: contingência entre espécies reais e o grupo de maior posterior. Os 5 erros são _versicolor_ no grupo majoritariamente _virginica_.],
+    kind: table,
+  ) <tab:em-k3-cont>
+
+  #figure(
+    image("../imagens/em_clusters_k3.png", width: 90%),
+    caption: [EM em $k = 3$ no plano `petal_length` × `petal_width`; a legenda informa a composição de cada grupo.],
+  ) <fig:em-clusters-k3>
+
+  #figure(
+    image("../imagens/em_posteriors.png", width: 100%),
+    caption: [EM em $k = 3$: posteriores ordenados por espécie e confiança da atribuição no plano das pétalas; em vermelho, as observações fora do grupo majoritário.],
+  ) <fig:em-post>
 
 
   == Agrupamento hierárquico Centroid Linkage
@@ -385,7 +430,7 @@
   ) <tab:pca>
 
 
-  Como mostra a @fig:pca-var, a variância concentra-se nas duas primeiras componentes, que juntas explicam 95,8% do total. A PC1 é formada por uma combinação equilibrada de `petal_length`, `petal_width` e `sepal_length`, enquanto a PC2 é dominada por `sepal_width` @tab:pca-loadings. Notou-se, aqui, a importância da normalização dos dados para obter componentes mais balanceados.
+  A @fig:pca-var mostra que as duas primeiras componentes reúnem 95,8% da variância: 72,8% na PC1 e 23% na PC2. Pelos coeficientes da @tab:pca-loadings, a PC1 #footnote[Um estudo à parte comprovou que a normalização é particularmente importante para o PCA, e o seu uso tornou os coeficientes mais balanceados.] combina principalmente `sepal_length`, `petal_length` e `petal_width`, e a PC2 é dominada por `sepal_width`.
 
   #figure(
     table(
@@ -415,11 +460,11 @@
     caption: [PCA: observações projetadas nas duas primeiras componentes principais, coloridas pela espécie real.],
   ) <fig:pca-scatter>
 
-  A projeção (@fig:pca-scatter) separa claramente a _setosa_, mas ainda há sobreposição entre _versicolor_ e _virginica_, como nos métodos de agrupamento. No plano, a silhueta interna por K-Means é 0,613 ($k = 2$), enquanto a silhueta externa com as espécies reais é 0,400. Já a trustworthiness com dez vizinhos é 0,978, indicando que a PCA segue preservando bem vizinhanças locais.
+  Na projeção (@fig:pca-scatter), a _setosa_ fica bem separada, enquanto _versicolor_ e _virginica_ ainda se sobrepõem. A silhueta interna é 0,613 para a partição de K-Means com $k = 2$, e resume a coesão e a separação desses grupos. Já a silhueta externa, calculada com as espécies reais, foi menos satisfatória, alcançando 0,400. Por outro lado, a trustworthiness com dez vizinhos é 0,978, indicando uma preservação forte da vizinhança local.
 
   == Kernel PCA
 
-  Foram avaliados cinco valores de $gamma$ com kernel RBF. Para cada configuração, a silhueta interna foi calculada por K-Means no plano 2D e a externa com as espécies reais, além da trustworthiness com dez vizinhos (@tab:kpca-grid). O melhor $gamma$ foi 0,25 — o default heurístico da biblioteca — com silhueta interna 0,667 ($k = 3$), externa 0,468 e trustworthiness 0,932. A decomposição espectral dessa configuração retornou 146 autovalores, cuja soma é 98,22; conforme descrito na metodologia, a proporção de cada componente foi calculada em relação a essa soma. A @tab:kpca apresenta as quatro primeiras componentes dessa configuração.
+  Também com o kernel RBF, comparamos cinco valores de $gamma$ (@tab:kpca-grid). Para cada um, a silhueta interna corresponde ao melhor K-Means entre $k = 2$ e $k = 5$ no plano 2D. A configuração selecionada foi $gamma = 0,05$, que apresentou a maior trustworthiness entre os valores testados, 0,976, muito próxima ao do PCA. Para essa configuração, o solver retornou 141 autovalores. A silhueta interna dessa projeção é 0,637 ($k = 2$) e a externa, 0,427. Já a maior silhueta interna do grid (0,667, com $k = 3$) ocorre em $gamma = 0,25$, mas possuía uma trustworthiness menor.
 
   #figure(
     table(
@@ -427,19 +472,43 @@
       align: center,
       stroke: none,
       table.hline(),
-      table.header([*Componente*], [*Autovalor ($lambda$)*], [*Proporção*], [*Acumulado*]),
+      table.header([*Componente*], [*Autovalor ($eta$)*], [*Proporção*], [*Acumulado*]),
       table.hline(),
-      [1], [39,132], [0,398], [0,398],
-      [2], [17,792], [0,181], [0,580],
-      [3], [8,677], [0,088], [0,668],
-      [4], [7,782], [0,079], [0,747],
+      [1], [26,677], [0,614], [0,614],
+      [2], [9,022], [0,208], [0,822],
+      [3], [2,503], [0,058], [0,879],
+      [4], [1,857], [0,043], [0,922],
       table.hline(),
     ),
-    caption: [Kernel PCA (RBF, $gamma = 0,25$, configuração selecionada): autovalores e proporções em relação à soma dos autovalores retornados (98,22).],
+    caption: [Kernel PCA (RBF, $gamma = 0,05$): autovalores, proporções e acumulado],
     kind: table,
   ) <tab:kpca>
 
-  Em contraste com a PCA linear, a variância no espaço de características induzido pelo kernel se espalha por um número maior de direções (@fig:kpca-var), concentrando-a menos, e a cauda do espectro se estende por dezenas de componentes.
+  A @tab:kpca-centroides resume as coordenadas médias das observações de cada espécie na projeção: _setosa_ (0,564; −0,075), _versicolor_ (−0,154; 0,176) e _virginica_ (−0,410; −0,101). Esses pontos, destacados na @fig:kpca-centroides, são os médios calculados após a projeção com os rótulos reais.
+
+  #figure(
+    table(
+      columns: 3,
+      align: center,
+      stroke: none,
+      table.hline(),
+      table.header([*Espécie*], [*Componente 1*], [*Componente 2*]),
+      table.hline(),
+      [Setosa], [0,564], [−0,075],
+      [Versicolor], [−0,154], [0,176],
+      [Virginica], [−0,410], [−0,101],
+      table.hline(),
+    ),
+    caption: [Kernel PCA: médias das coordenadas das observações de cada espécie nas duas primeiras componentes.],
+    kind: table,
+  ) <tab:kpca-centroides>
+
+  #figure(
+    image("../imagens/kpca_scatter_centroids.png", width: 100%),
+    caption: [Kernel PCA ($gamma = 0,05$): projeção das observações e centróides das espécies.],
+  ) <fig:kpca-centroides>
+
+  As duas primeiras componentes do Kernel PCA somam 82,2% da soma dos autovalores retornados, e as quatro primeiras, 92,2% (@tab:kpca). O espectro também apresenta uma cauda longa de autovalores pequenos (@fig:kpca-var, @fig:kpca-var-log).
 
   #figure(
     table(
@@ -449,28 +518,35 @@
       table.hline(),
       table.header([*$gamma$*], [*Sil. interna*], [*$k$*], [*Sil. externa*], [*Trustworthiness*]),
       table.hline(),
-      [0,05], [0,637], [2], [0,427], [0,976],
+      [0,05], [0,637], [2], [0,427], [*0,976*],
       [0,10], [0,647], [2], [0,447], [0,962],
       [0,25], [*0,667*], [3], [0,468], [0,932],
       [0,50], [0,649], [3], [0,456], [0,915],
       [1,00], [0,583], [3], [0,417], [0,892],
       table.hline(),
     ),
-    caption: [Kernel PCA (RBF): grid sobre $gamma$; seleção pela maior silhueta interna.],
+    caption: [Kernel PCA (RBF): grid sobre $gamma$; seleção pela maior trustworthiness. O $k$ informado é o do K-Means no plano 2D e serve apenas como descrição.],
     kind: table,
   ) <tab:kpca-grid>
 
   #figure(
     image("../imagens/kpca_variance.png", width: 100%),
-    caption: [Kernel PCA (RBF, $gamma = 0,25$): proporção dos autovalores nas dez primeiras componentes e acumulado.],
+    caption: [Kernel PCA (RBF, $gamma = 0,05$): proporção dos autovalores nas dez primeiras componentes e acumulado.],
   ) <fig:kpca-var>
+
+  Como a cauda é longa, @fig:kpca-var-log repete os autovalores em escala logarítmica. Nela fica mais fácil ver que, depois das duas primeiras componentes, os valores decaem sem um novo salto.
+
+  #figure(
+    image("../imagens/kpca_scree_log.png", width: 100%),
+    caption: [Kernel PCA ($gamma = 0,05$): todos os autovalores em escala logarítmica.],
+  ) <fig:kpca-var-log>
 
   #figure(
     image("../imagens/kpca_scatter.png", width: 100%),
-    caption: [Kernel PCA (RBF, $gamma = 0,25$, configuração selecionada): observações projetadas nas duas primeiras componentes, coloridas pela espécie real.],
+    caption: [Kernel PCA (RBF, $gamma = 0,05$, configuração selecionada): observações projetadas nas duas primeiras componentes, coloridas pela espécie real.],
   ) <fig:kpca-scatter>
 
-  Na projeção (@fig:kpca-scatter), a _setosa_ permanece separada das demais espécies, com sobreposição entre _versicolor_ e _virginica_ semelhante à do PCA linear. Nas métricas complementares, a silhueta interna selecionada é de 0,667 ($k = 3$) e a externa é 0,468. A trustworthiness com dez vizinhos é 0,932, abaixo do PCA linear (0,978), indicando maior distorção de vizinhança conforme $gamma$ cresce (de 0,976 em $gamma = 0,05$ a 0,892 em $gamma = 1,0$).
+  Na projeção (@fig:kpca-scatter), a _setosa_ permanece separada das demais espécies, com sobreposição entre _versicolor_ e _virginica_ semelhante à do PCA linear. Na configuração escolhida, a trustworthiness com dez vizinhos é 0,976: abaixo dos 0,978 da PCA linear, como era esperado para uma projeção não linear, mas acima dos 0,932 de $gamma = 0,25$. As silhuetas dessa configuração são 0,637 ($k = 2$, interna) e 0,427 (externa) e ficam apenas como descrição. O grid mostra que a trustworthiness cai de 0,976 em $gamma = 0,05$ para 0,892 em $gamma = 1,0$: quanto mais estreito o kernel, mais a projeção distorce vizinhanças, mesmo quando a silhueta interna sobe. Por isso o critério adotado foi fidelidade de vizinhança, e não compactação do plano.
 
   == t-SNE
 

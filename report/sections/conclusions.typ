@@ -1,3 +1,3 @@
 #let conclusions = [
-  = Conclusões
+  = Conclusões <sec:conclusoes>
 ]

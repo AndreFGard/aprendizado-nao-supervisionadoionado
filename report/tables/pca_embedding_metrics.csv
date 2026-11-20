@@ -1,0 +1,2 @@
+model_name,n_neighbors,silhouette,cluster_k,external_silhouette,trustworthiness
+PCA,10,0.6130367695437592,2,0.4002742894857172,0.9781561338289962

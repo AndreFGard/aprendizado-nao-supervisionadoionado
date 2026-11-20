@@ -7,5 +7,5 @@
 
   A primeira parte do trabalho avalia sete algoritmos de agrupamento: K-Means, Fuzzy K-Means, misturas gaussianas ajustadas por EM e DBSCAN, comuns a todas as equipes, além de Kernel Fuzzy K-Means, K-Medoids com distância city-block e agrupamento hierárquico aglomerativo com ligação por centroide (UPGMC). Para os métodos com número de grupos $k$ como parâmetro, variamos $k \in \{2,3,4,5\}$; $k=1$ foi excluído por a silhueta não ser definida nesse caso. A segunda parte aplica quatro técnicas de redução de dimensionalidade, PCA, Kernel PCA, t-SNE e UMAP, e compara as projeções bidimensionais obtidas.
 
-  Assim, o artigo encontra-se dividido em REF_metodologia, onde discutimos as técnicas e procedimentos adotados, REF_results, onde expomos os resultados encontrados durante a experimentação, e REF_CONCLUSAO, em que concluímos o trabalho com  considerações finais.
+  Assim, o artigo encontra-se dividido na seção de metodologia, onde discutimos as técnicas e os procedimentos adotados; na seção de resultados, onde expomos a experimentação; e nas considerações finais.
 ]

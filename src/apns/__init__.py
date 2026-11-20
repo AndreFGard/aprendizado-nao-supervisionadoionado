@@ -232,7 +232,10 @@ def export_kernel_pca_results(
     )
     _save_table(grid, tables_dir, "kpca_metrics.csv")
 
-    best_row = _select_best_row(grid, metric="silhouette")
+    # Trustworthiness is the primary criterion for embedding parameters:
+    # the internal silhouette rewards compact islands in the 2-D plane and
+    # is kept only as a descriptive diagnostic.
+    best_row = _select_best_row(grid, metric="trustworthiness")
     best_gamma = best_row["gamma"]
     result = evaluate_kernel_pca_model(x, y, kernel=kernel, gamma=best_gamma)
 
@@ -258,9 +261,9 @@ def export_kernel_pca_results(
     )
     print(
         f"Kernel PCA: melhor gamma={best_gamma:g}, "
-        f"silhueta={best_row['silhouette']:.4f}, ARI-ext={best_row['external_silhouette']:.4f}"
-        if best_row["silhouette"] is not None
-        else f"Kernel PCA: melhor gamma={best_gamma:g}"
+        f"trustworthiness={best_row['trustworthiness']:.4f}, "
+        f"silhueta interna={best_row['silhouette']:.4f}, "
+        f"silhueta externa={best_row['external_silhouette']:.4f}"
     )
     return result.variance
 
